@@ -82,7 +82,10 @@
     "INVALID_INVITATION": "This invitation is invalid, has expired, or was sent to a different email address.",
     "ORG_LIMIT_REACHED": "You already own the maximum number of workspaces.",
     "FORBIDDEN": "You don't have permission to do that.",
-    "NOT_FOUND": "That doesn't exist, or you don't have access to it."
+    "NOT_FOUND": "That doesn't exist, or you don't have access to it.",
+    "TOO_MANY_FILES": "Too many files at once. Upload up to 10 at a time.",
+    "STORAGE_UNAVAILABLE": "File storage is temporarily unavailable. Please try again shortly.",
+    "NO_FILES": "Choose at least one file."
   },
   "Org": {
     "switcherLabel": "Switch workspace",
@@ -104,5 +107,56 @@
     "accepting": "Accepting your invitation…",
     "missing": "This invitation link is incomplete. Ask for a new one.",
     "continue": "Go to workspace"
+  },
+  "Library": {
+    "title": "Library",
+    "upload": "Upload",
+    "uploading": "Uploading…",
+    "search": "Filter documents",
+    "allCollections": "All collections",
+    "restricted": "Restricted collection",
+    "columns": {
+      "document": "Document",
+      "collection": "Collection",
+      "size": "Size",
+      "status": "Status",
+      "uploaded": "Uploaded"
+    },
+    "status": {
+      "uploaded": "Uploaded"
+    },
+    "emptyTitle": "No documents yet",
+    "emptyEditor": "Drag files here or use Upload. PDF, Word, PowerPoint, text and Markdown files up to 50 MB.",
+    "emptyViewer": "Documents added by your team will appear here.",
+    "noMatches": "No documents match your filters.",
+    "loadMore": "Load more",
+    "download": "Download",
+    "delete": "Delete",
+    "confirmDelete": "Delete “{name}”? This can't be undone.",
+    "confirm": "Delete",
+    "cancel": "Cancel",
+    "dropHere": "Drop files to upload to {collection}",
+    "uploadTo": "Upload to",
+    "dismiss": "Dismiss",
+    "outcome": {
+      "created": "Uploaded",
+      "duplicate": "Already in this collection",
+      "rejected": "Not uploaded"
+    },
+    "reject": {
+      "UNSUPPORTED_TYPE": "Unsupported or mismatched file type. Use PDF, DOCX, PPTX, TXT or MD.",
+      "FILE_TOO_LARGE": "Larger than the 50 MB limit.",
+      "EMPTY_FILE": "The file is empty.",
+      "CORRUPT_FILE": "The file appears to be damaged.",
+      "TOO_LARGE_CLIENT": "Larger than the 50 MB limit.",
+      "TYPE_CLIENT": "Unsupported file type."
+    },
+    "units": {
+      "b": "B",
+      "kb": "KB",
+      "mb": "MB",
+      "gb": "GB"
+    },
+    "loadError": "Couldn't load the library."
   }
 }

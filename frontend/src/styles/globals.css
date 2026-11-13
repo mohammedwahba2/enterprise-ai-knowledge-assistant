@@ -615,3 +615,404 @@ body {
     min-width: 220px;
   }
 }
+
+/* ---------- Library (dense table, from the approved mockup) ---------- */
+.lib {
+  position: relative;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding: 28px 28px 100px;
+}
+
+.lh {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-block-end: 18px;
+}
+
+.lh h1 {
+  margin: 0;
+  font: 400 28px var(--font-read);
+}
+
+:lang(ar) .lh h1 {
+  font-size: 27px;
+}
+
+.btnp {
+  margin-inline-start: auto;
+  padding: 7px 14px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--paper);
+  font: 500 14px var(--font-ui);
+  cursor: pointer;
+}
+
+.btnp:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.upload-target {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-inline-start: auto;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.upload-target + input + .btnp {
+  margin-inline-start: 0;
+}
+
+.upload-target select {
+  padding: 5px 8px;
+  border: 1px solid var(--hair);
+  border-radius: 6px;
+  background: var(--raised);
+  color: var(--ink);
+  font: 400 13px var(--font-ui);
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-block-end: 14px;
+}
+
+.f {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--hair);
+  border-radius: 6px;
+  background: var(--raised);
+  color: var(--ink-2);
+  font: 400 13px var(--font-ui);
+  cursor: pointer;
+}
+
+.f.on {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.f b {
+  font: 500 11.5px var(--font-mono);
+  opacity: 0.7;
+}
+
+.fsearch {
+  min-width: 200px;
+  margin-inline-start: auto;
+  padding: 5px 10px;
+  border: 1px solid var(--hair);
+  border-radius: 6px;
+  background: var(--raised);
+  color: var(--ink);
+  font: 400 13px var(--font-ui);
+}
+
+.tw {
+  overflow: hidden;
+  border: 1px solid var(--hair);
+  border-radius: 10px;
+  background: var(--raised);
+}
+
+.tw table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tw th {
+  position: sticky;
+  inset-block-start: 0;
+  padding: 8px 10px;
+  border-block-end: 1px solid var(--hair);
+  background: var(--paper);
+  color: var(--ink-3);
+  font: 500 11px var(--font-mono);
+  letter-spacing: 0.05em;
+  text-align: start;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+:lang(ar) .tw th {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.tw td {
+  padding: 9px 10px;
+  border-block-end: 1px solid var(--hair);
+  vertical-align: middle;
+}
+
+.tw tbody tr:hover td {
+  background: var(--sunken);
+}
+
+.tw td.t b {
+  display: block;
+  font-weight: 500;
+}
+
+.tw td.t small {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+.tw .n {
+  color: var(--ink-2);
+  font: 400 12.5px var(--font-mono);
+  text-align: end;
+  white-space: nowrap;
+}
+
+:lang(ar) .tw .n {
+  font-family: var(--font-ui);
+}
+
+.st {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.st::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  content: "";
+}
+
+.st.muted::before {
+  background: var(--ink-3);
+}
+
+.lock {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  margin-inline-start: 6px;
+  vertical-align: -1px;
+  stroke: var(--ink-3);
+}
+
+.actions {
+  white-space: nowrap;
+  text-align: end;
+}
+
+.act {
+  margin-inline-start: 14px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: 400 12.5px var(--font-ui);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.act:hover {
+  text-decoration: underline;
+}
+
+.danger-link {
+  color: var(--brick);
+}
+
+.confirm {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+.confirm-q {
+  color: var(--ink-2);
+}
+
+.danger {
+  padding: 3px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--brick);
+  color: #fff;
+  font: 500 12.5px var(--font-ui);
+  cursor: pointer;
+}
+
+.linklike {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: 400 12.5px var(--font-ui);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.lib-empty {
+  padding: 56px 8px;
+  border-block-start: 1px solid var(--hair);
+}
+
+.lib-empty h2 {
+  margin: 0 0 8px;
+  font: 400 20px var(--font-read);
+}
+
+.lib-empty p {
+  max-width: 56ch;
+  margin: 0;
+  color: var(--ink-2);
+  font: 400 16px/1.7 var(--font-read);
+}
+
+:lang(ar) .lib-empty p {
+  line-height: 2;
+}
+
+.load-more {
+  margin: 16px 0 0;
+  text-align: center;
+}
+
+.outcomes {
+  margin-block-end: 16px;
+  padding: 8px 14px;
+  border: 1px solid var(--hair);
+  border-radius: 8px;
+  background: var(--raised);
+}
+
+.outcomes ul {
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.outcomes li {
+  display: flex;
+  gap: 12px;
+  padding: 6px 0;
+  font-size: 13px;
+}
+
+.outcomes li + li {
+  border-block-start: 1px solid var(--hair);
+}
+
+.of-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.of-state {
+  color: var(--ink-2);
+}
+
+li[data-kind="rejected"] .of-state {
+  color: var(--brick);
+}
+
+li[data-kind="created"] .of-state {
+  color: var(--accent);
+}
+
+.drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--accent);
+  border-radius: 12px;
+  background: rgb(247 245 240 / 88%);
+  color: var(--accent);
+  font: 500 18px var(--font-ui);
+  pointer-events: none;
+}
+
+@media (width <= 699px) {
+  .lib {
+    padding: 20px 16px 90px;
+  }
+
+  .lh h1 {
+    font-size: 24px;
+  }
+
+  .fsearch {
+    display: none;
+  }
+
+  .tw table,
+  .tw thead,
+  .tw tbody,
+  .tw tr,
+  .tw td {
+    display: block;
+  }
+
+  .tw thead {
+    display: none;
+  }
+
+  .tw tr {
+    padding: 12px 14px;
+    border-block-end: 1px solid var(--hair);
+  }
+
+  .tw td {
+    padding: 0;
+    border: 0;
+  }
+
+  .tw td.hm {
+    display: none;
+  }
+
+  .tw td.t {
+    margin-block-end: 6px;
+  }
+
+  .tw tbody tr:hover td {
+    background: none;
+  }
+
+  .actions {
+    margin-block-start: 8px;
+    text-align: start;
+  }
+
+  .actions .act:first-child {
+    margin-inline-start: 0;
+  }
+}

@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/navigation";
+import { Link, usePathname } from "@/i18n/navigation";
 import { Icon, type IconName } from "./Icon";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { useCurrentOrg } from "./OrgGate";
@@ -21,11 +21,22 @@ const ITEMS: Item[] = [
 export function AppShell({ children }: { children: ReactNode }) {
   const t = useTranslations();
   const org = useCurrentOrg();
+  const pathname = usePathname();
+  const current = pathname.startsWith(`/${org.slug}/library`) ? "library" : "ask";
 
-  // Only "Ask" exists so far; other destinations are rendered disabled, not as dead links.
+  // Ask and Library exist so far; other destinations are rendered disabled, not as dead links.
+  const hrefs: Partial<Record<Item["key"], string>> = {
+    ask: `/${org.slug}`,
+    library: `/${org.slug}/library`,
+  };
   const renderItem = (item: Item) =>
-    item.key === "ask" ? (
-      <Link key={item.key} href={`/${org.slug}`} className="nav-item" aria-current="page">
+    hrefs[item.key] ? (
+      <Link
+        key={item.key}
+        href={hrefs[item.key]!}
+        className="nav-item"
+        aria-current={current === item.key ? "page" : undefined}
+      >
         <Icon name={item.icon} />
         <span className="label">{t(`Nav.${item.key}`)}</span>
       </Link>

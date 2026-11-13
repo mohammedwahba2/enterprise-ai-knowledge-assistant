@@ -25,6 +25,10 @@ EXPECTED: dict[Action, set[Role]] = {
     Action.MEMBER_REMOVE: {Role.OWNER, Role.ADMIN},
     Action.INVITATION_MANAGE: {Role.OWNER, Role.ADMIN},
     Action.ORG_DELETE: {Role.OWNER},
+    Action.COLLECTION_MANAGE: {Role.OWNER, Role.ADMIN},
+    Action.DOCUMENT_VIEW: {Role.OWNER, Role.ADMIN, Role.EDITOR, Role.MEMBER, Role.VIEWER},
+    Action.DOCUMENT_UPLOAD: {Role.OWNER, Role.ADMIN, Role.EDITOR},
+    Action.DOCUMENT_DELETE: {Role.OWNER, Role.ADMIN, Role.EDITOR},
 }
 
 

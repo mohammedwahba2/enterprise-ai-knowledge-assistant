@@ -40,7 +40,7 @@ async def test_ready_with_unreachable_real_dependencies_returns_503_without_leak
         app_env="test",
         database_url="postgresql://u:supersecret@127.0.0.1:1/db",
         redis_url="redis://:supersecret@127.0.0.1:1/0",
-        object_store_health_url="http://127.0.0.1:1/cluster/healthz",
+        s3_endpoint="http://127.0.0.1:1",
         readiness_timeout_seconds=0.5,
     )
     app = create_app(plain_settings)

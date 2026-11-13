@@ -13,8 +13,10 @@ from app.core.config import Settings
 from app.core.errors import AppError
 from app.db.base import new_id
 from app.db.tenant import TenantScope, bind_scope, change_scope
+from app.infrastructure.storage.s3 import ObjectStore, StorageUnavailableError
 from app.modules.access import policies
 from app.modules.access.policies import Action, Role
+from app.modules.documents.models import Collection
 from app.modules.identity.models import User
 from app.modules.identity.rate_limit import RateLimiter, digest
 from app.modules.identity.tokens import hash_token, new_opaque_token
@@ -72,6 +74,16 @@ async def create_org(db: AsyncSession, settings: Settings, user: User, name: str
     if org is None:
         raise AppError(500, "INTERNAL_ERROR", "Could not allocate a workspace address")
     db.add(Membership(organization_id=org_id, user_id=user.id, role=Role.OWNER.value))
+    await db.flush()  # the membership must exist before RLS lets the first collection in
+    db.add(
+        Collection(
+            organization_id=org_id,
+            name="General",
+            description="",
+            visibility="org",
+            created_by=user.id,
+        )
+    )
     await db.commit()
     _log.info("org.created", org_id=str(org_id), user_id=str(user.id))
     return _org_out(org, Role.OWNER.value)
@@ -110,11 +122,18 @@ async def update_org(ctx: TenantCtx, name: str) -> OrgOut:
     return _org_out(org, ctx.role.value)
 
 
-async def delete_org(ctx: TenantCtx) -> None:
+async def delete_org(ctx: TenantCtx, store: ObjectStore) -> None:
     policies.require(ctx.role, Action.ORG_DELETE)
     await ctx.db.execute(delete(Organization).where(Organization.id == ctx.org_id))
     await ctx.db.commit()
     _log.warning("org.deleted", org_id=str(ctx.org_id), user_id=str(ctx.user.id))
+    # Rows are gone; now remove the workspace's files. A failure leaves orphaned objects under the
+    # org prefix (logged for an operator sweep), never visible data.
+    try:
+        removed = await store.delete_prefix(f"org/{ctx.org_id}/")
+        _log.info("org.objects_deleted", org_id=str(ctx.org_id), objects=removed)
+    except StorageUnavailableError:
+        _log.error("org_objects_purge_failed", org_id=str(ctx.org_id))
 
 
 async def list_members(ctx: TenantCtx) -> list[MemberOut]:

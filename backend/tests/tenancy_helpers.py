@@ -39,6 +39,19 @@ class Person:
     async def delete(self, path: str) -> Response:
         return await self.client.delete(f"{V1}{path}", headers=self.h())
 
+    async def put(self, path: str, json: object) -> Response:
+        return await self.client.put(f"{V1}{path}", json=json, headers=self.h())
+
+    async def upload(self, org_id: str, collection_id: str, *files: tuple[str, bytes]) -> Response:
+        return await self.client.post(
+            f"{V1}/orgs/{org_id}/documents",
+            data={"collection_id": collection_id},
+            files=[
+                ("files", (name, content, "application/octet-stream")) for name, content in files
+            ],
+            headers=self.h(),
+        )
+
     async def get(self, path: str) -> Response:
         return await self.client.get(f"{V1}{path}")
 
@@ -73,6 +86,29 @@ class World:
         a = await person.post("/invitations/accept", {"token": token})
         assert a.status_code == 200, a.text
         return dict(a.json())
+
+    async def general(self, person: Person, org_id: str) -> str:
+        """The id of the default collection created with every workspace."""
+        r = await person.get(f"/orgs/{org_id}/collections")
+        return str(next(c["id"] for c in r.json() if c["name"] == "General"))
+
+    async def collection(
+        self,
+        admin: Person,
+        org_id: str,
+        name: str,
+        visibility: str = "org",
+        members: list[str] | None = None,
+    ) -> str:
+        r = await admin.post(
+            f"/orgs/{org_id}/collections", {"name": name, "visibility": visibility}
+        )
+        assert r.status_code == 201, r.text
+        cid = str(r.json()["id"])
+        if members is not None:
+            m = await admin.put(f"/orgs/{org_id}/collections/{cid}/members", {"user_ids": members})
+            assert m.status_code == 200, m.text
+        return cid
 
     async def member_id(self, viewer: Person, org_id: str, user_id: str) -> str:
         r = await viewer.get(f"/orgs/{org_id}/members")

@@ -37,6 +37,10 @@ class Action(StrEnum):
     MEMBER_UPDATE_ROLE = "member:update_role"
     MEMBER_REMOVE = "member:remove"
     INVITATION_MANAGE = "invitation:manage"
+    COLLECTION_MANAGE = "collection:manage"
+    DOCUMENT_VIEW = "document:view"
+    DOCUMENT_UPLOAD = "document:upload"
+    DOCUMENT_DELETE = "document:delete"
 
 
 # Minimum role required for each action. Anything not listed is denied.
@@ -49,6 +53,10 @@ _MINIMUM: dict[Action, Role] = {
     Action.MEMBER_REMOVE: Role.ADMIN,
     Action.INVITATION_MANAGE: Role.ADMIN,
     Action.ORG_DELETE: Role.OWNER,
+    Action.COLLECTION_MANAGE: Role.ADMIN,
+    Action.DOCUMENT_VIEW: Role.VIEWER,
+    Action.DOCUMENT_UPLOAD: Role.EDITOR,
+    Action.DOCUMENT_DELETE: Role.EDITOR,
 }
 
 

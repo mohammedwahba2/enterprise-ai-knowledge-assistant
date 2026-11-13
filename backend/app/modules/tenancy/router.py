@@ -78,8 +78,8 @@ async def update_org(org_id: uuid.UUID, body: UpdateOrgRequest, ctx: Tenant) -> 
 
 
 @router.delete("/{org_id}", status_code=204)
-async def delete_org(org_id: uuid.UUID, ctx: Tenant) -> None:
-    await service.delete_org(ctx)
+async def delete_org(org_id: uuid.UUID, ctx: Tenant, request: Request) -> None:
+    await service.delete_org(ctx, request.app.state.store)
 
 
 @router.get("/{org_id}/members", response_model=list[MemberOut])

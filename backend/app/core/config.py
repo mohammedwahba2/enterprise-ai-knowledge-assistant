@@ -18,7 +18,12 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql://knowledge:change-me@localhost:5432/knowledge"
     redis_url: str = "redis://localhost:6379/0"
-    object_store_health_url: str = "http://localhost:9333/cluster/healthz"
+    # S3-compatible object store (SeaweedFS). The store is never exposed to browsers.
+    s3_endpoint: str = "http://localhost:8333"
+    s3_access_key: SecretStr = SecretStr("change-me-key")
+    s3_secret_key: SecretStr = SecretStr("change-me-secret")
+    s3_bucket: str = "knowledge-documents"
+    s3_region: str = "us-east-1"
     readiness_timeout_seconds: float = 2.0
 
     # --- identity ---
@@ -32,6 +37,10 @@ class Settings(BaseSettings):
     refresh_family_max_days: int = Field(default=30, ge=1)
     refresh_grace_seconds: int = Field(default=10, ge=0)
     reset_ttl_minutes: int = Field(default=30, ge=5)
+
+    # --- documents ---
+    max_upload_bytes: int = Field(default=50 * 1024 * 1024, ge=1024)
+    max_files_per_upload: int = Field(default=10, ge=1, le=50)
 
     # --- tenancy ---
     max_owned_orgs_per_user: int = Field(default=10, ge=1)
@@ -70,6 +79,8 @@ class Settings(BaseSettings):
                 problems.append("JWT_SECRET must be set")
             if len(self.jwt_secret.get_secret_value()) < 32:
                 problems.append("JWT_SECRET must be at least 32 characters")
+            if self.s3_secret_key.get_secret_value() == "change-me-secret":
+                problems.append("S3_SECRET_KEY must be set")
             if not self.cookie_secure:
                 problems.append("COOKIE_SECURE must be true")
             if not self.app_origin.startswith("https://"):

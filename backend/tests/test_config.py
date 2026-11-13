@@ -37,6 +37,7 @@ def test_production_accepts_secure_config() -> None:
     s = Settings(
         app_env="prod",
         jwt_secret=SecretStr("x" * 40),
+        s3_secret_key=SecretStr("real-secret-value"),
         cookie_secure=True,
         app_origin="https://example.test",
     )
@@ -46,3 +47,13 @@ def test_production_accepts_secure_config() -> None:
 def test_short_jwt_secret_rejected_everywhere() -> None:
     with pytest.raises(ValueError, match="at least 32"):
         Settings(jwt_secret=SecretStr("short"))
+
+
+def test_production_refuses_the_default_object_store_secret() -> None:
+    with pytest.raises(ValueError, match="S3_SECRET_KEY"):
+        Settings(
+            app_env="prod",
+            jwt_secret=SecretStr("x" * 40),
+            cookie_secure=True,
+            app_origin="https://example.test",
+        )

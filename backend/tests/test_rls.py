@@ -30,7 +30,8 @@ async def seeded(pg_url: str) -> None:
     conn = await asyncpg.connect(pg_url)
     try:
         await conn.execute(
-            "TRUNCATE users, refresh_tokens, password_resets, organizations, memberships, invitations CASCADE"
+            "TRUNCATE users, refresh_tokens, password_resets, organizations, memberships, invitations, "
+            "collections, collection_members, documents CASCADE"
         )
         for uid, mail in ((U_A, "a@example.com"), (U_A2, "a2@example.com"), (U_B, "b@example.com")):
             await conn.execute(

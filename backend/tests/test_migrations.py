@@ -7,6 +7,7 @@ from alembic.config import Config
 
 TABLES = {
     "users", "refresh_tokens", "password_resets", "organizations", "memberships", "invitations",
+    "collections", "collection_members", "documents",
 }  # fmt: skip
 
 

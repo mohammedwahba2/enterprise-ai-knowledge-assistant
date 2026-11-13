@@ -13,6 +13,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 from testcontainers.community.postgres import PostgresContainer
 from testcontainers.community.redis import RedisContainer
+from testcontainers.core.container import DockerContainer
 
 from app.core.config import Settings
 from app.core.readiness import Check, CheckResult
@@ -23,6 +24,8 @@ if TYPE_CHECKING:
     from tests.tenancy_helpers import World
 
 APP_DB_PASSWORD = "app-role-test-password"
+S3_KEY, S3_SECRET, S3_BUCKET = "test-access-key", "test-secret-key-0123456789", "test-bucket"
+SEAWEED_IMAGE = "chrislusf/seaweedfs:latest"
 PG_IMAGE = "pgvector/pgvector:pg16"
 REDIS_IMAGE = "redis:7-alpine"
 
@@ -55,6 +58,43 @@ def app_db_url(pg_url: str) -> str:
 
 
 @pytest.fixture(scope="session")
+def s3_endpoint() -> Iterator[str]:
+    """A real SeaweedFS S3 gateway with authentication enabled, like the Compose service."""
+    import time
+
+    import boto3
+    from botocore.client import Config
+
+    script = (
+        'printf \'{"identities":[{"name":"app","credentials":[{"accessKey":"%s",'
+        '"secretKey":"%s"}],"actions":["Admin","Read","Write","List","Tagging"]}]}\' '
+        f"{S3_KEY} {S3_SECRET} > /tmp/s3.json && exec weed server -dir=/data -volume.max=50 -ip.bind=0.0.0.0 -s3 -s3.config=/tmp/s3.json"
+    )
+    container = (
+        DockerContainer(SEAWEED_IMAGE)
+        .with_kwargs(entrypoint=["sh", "-c"])
+        .with_command([script])
+        .with_exposed_ports(8333)
+    )
+    with container:
+        endpoint = f"http://{container.get_container_host_ip()}:{container.get_exposed_port(8333)}"
+        client = boto3.client(
+            "s3", endpoint_url=endpoint, aws_access_key_id=S3_KEY, aws_secret_access_key=S3_SECRET,
+            region_name="us-east-1", config=Config(connect_timeout=2, read_timeout=5, retries={"max_attempts": 1}),
+        )  # fmt: skip
+        deadline = time.time() + 90
+        while True:
+            try:
+                client.list_buckets()
+                break
+            except Exception:
+                if time.time() > deadline:
+                    raise
+                time.sleep(1)
+        yield endpoint
+
+
+@pytest.fixture(scope="session")
 def redis_url() -> Iterator[str]:
     with RedisContainer(REDIS_IMAGE) as r:
         yield f"redis://{r.get_container_host_ip()}:{r.get_exposed_port(6379)}/0"
@@ -83,11 +123,15 @@ def outbox() -> Outbox:
 
 
 @pytest.fixture
-def settings(app_db_url: str, redis_url: str) -> Settings:
+def settings(app_db_url: str, redis_url: str, s3_endpoint: str) -> Settings:
     return Settings(
         app_env="test",
         log_json=True,
         database_url=app_db_url,
+        s3_endpoint=s3_endpoint,
+        s3_access_key=S3_KEY,  # type: ignore[arg-type]
+        s3_secret_key=S3_SECRET,  # type: ignore[arg-type]
+        s3_bucket=S3_BUCKET,
         redis_url=redis_url,
         app_origin="http://localhost:8080",
         cookie_secure=False,
@@ -111,7 +155,7 @@ async def _clean_state(request: pytest.FixtureRequest) -> AsyncIterator[None]:
         await conn.execute(
             text(
                 "TRUNCATE users, refresh_tokens, password_resets, organizations, memberships, "
-                "invitations CASCADE"
+                "invitations, collections, collection_members, documents CASCADE"
             )
         )
     await engine.dispose()

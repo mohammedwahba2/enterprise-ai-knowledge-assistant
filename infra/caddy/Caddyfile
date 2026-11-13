@@ -14,6 +14,10 @@
 	}
 
 	handle /api/* {
+		# Uploads: at most 10 files of 50 MB; the API enforces the per-file limit precisely.
+		request_body {
+			max_size 520MB
+		}
 		# flush_interval -1: stream responses immediately (chat answers use SSE in later stages)
 		reverse_proxy api:8000 {
 			flush_interval -1

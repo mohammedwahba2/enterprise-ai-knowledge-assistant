@@ -48,7 +48,8 @@ export function readCookie(name: string): string {
 async function send(path: string, init: RequestInit = {}): Promise<Response> {
   const method = (init.method ?? "GET").toUpperCase();
   const headers = new Headers(init.headers);
-  if (init.body !== undefined && !headers.has("content-type")) {
+  // FormData must keep the browser-generated multipart boundary: never force a content type on it.
+  if (typeof init.body === "string" && !headers.has("content-type")) {
     headers.set("content-type", "application/json");
   }
   if (UNSAFE.has(method)) {
@@ -170,4 +171,63 @@ export const auth = {
     request<void>("/auth/password/reset", json({ token, password }), { retryOn401: false }),
   updateMe: (patch: Partial<Pick<User, "locale" | "digit_style" | "display_name">>) =>
     request<User>("/auth/me", { method: "PATCH", body: JSON.stringify(patch) }),
+};
+
+export type Collection = {
+  id: string;
+  name: string;
+  description: string;
+  visibility: "org" | "restricted";
+  document_count: number;
+  member_count: number | null;
+  can_upload: boolean;
+};
+
+export type DocumentItem = {
+  id: string;
+  collection_id: string;
+  collection_name: string;
+  title: string;
+  original_filename: string;
+  mime_type: string;
+  size_bytes: number;
+  status: string;
+  error_code: string | null;
+  page_count: number | null;
+  uploaded_by_name: string | null;
+  created_at: string;
+};
+
+export type DocumentPage = { items: DocumentItem[]; next_cursor: string | null };
+
+export type UploadResult = {
+  filename: string;
+  outcome: "created" | "duplicate" | "rejected";
+  document: DocumentItem | null;
+  error_code: string | null;
+};
+
+export const collections = {
+  list: (orgId: string) => request<Collection[]>(`/orgs/${orgId}/collections`),
+};
+
+export const documents = {
+  list: (orgId: string, p: { collection_id?: string; q?: string; cursor?: string | null; limit?: number } = {}) => {
+    const qs = new URLSearchParams();
+    if (p.collection_id) qs.set("collection_id", p.collection_id);
+    if (p.q?.trim()) qs.set("q", p.q.trim());
+    if (p.cursor) qs.set("cursor", p.cursor);
+    qs.set("limit", String(p.limit ?? 50));
+    return request<DocumentPage>(`/orgs/${orgId}/documents?${qs.toString()}`);
+  },
+  upload: (orgId: string, collectionId: string, files: File[]) => {
+    const body = new FormData();
+    body.append("collection_id", collectionId);
+    for (const file of files) body.append("files", file);
+    return request<UploadResult[]>(`/orgs/${orgId}/documents`, { method: "POST", body });
+  },
+  remove: (orgId: string, id: string) => request<void>(`/orgs/${orgId}/documents/${id}`, { method: "DELETE" }),
+  /** Same-origin URL; the API re-checks the caller's access on every request. */
+  fileUrl: (orgId: string, id: string, download = false) =>
+    `${BASE}/orgs/${orgId}/documents/${id}/file${download ? "?download=true" : ""}`,
 };

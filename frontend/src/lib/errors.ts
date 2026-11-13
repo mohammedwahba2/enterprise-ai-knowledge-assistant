@@ -23,6 +23,9 @@ export function describeError(e: unknown): ErrorView {
     case "ORG_LIMIT_REACHED":
     case "FORBIDDEN":
     case "NOT_FOUND":
+    case "TOO_MANY_FILES":
+    case "STORAGE_UNAVAILABLE":
+    case "NO_FILES":
       return { key: e.code, reasons: [] };
     default:
       return { key: "UNKNOWN", reasons: [] };

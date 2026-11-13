@@ -12,6 +12,8 @@ from app.core.logging import configure_logging
 from app.core.middleware import RequestContextMiddleware
 from app.core.readiness import Check, build_checks
 from app.db.base import make_engine, make_sessionmaker
+from app.infrastructure.storage.s3 import ObjectStore, S3ObjectStore
+from app.modules.documents.router import router as documents_router
 from app.modules.identity.email import EmailSender, SmtpEmailSender
 from app.modules.identity.passwords import PasswordService
 from app.modules.identity.rate_limit import RateLimiter
@@ -25,6 +27,7 @@ def create_app(
     checks: list[Check] | None = None,
     *,
     email_sender: EmailSender | None = None,
+    store: ObjectStore | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
     configure_logging(settings.log_level, settings.log_json)
@@ -34,7 +37,11 @@ def create_app(
     redis = Redis.from_url(settings.redis_url, socket_connect_timeout=2, socket_timeout=2)
 
     @asynccontextmanager
-    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    async def lifespan(app_: FastAPI) -> AsyncIterator[None]:
+        try:  # tolerate an unavailable store at boot: readiness reports it, uploads retry
+            await app_.state.store.ensure_bucket()
+        except Exception:
+            structlog.get_logger("app").error("bucket_not_ready", exc_info=True)
         yield
         await engine.dispose()
         await redis.aclose()
@@ -59,6 +66,7 @@ def create_app(
         parallelism=settings.argon2_parallelism,
     )
     app.state.email_sender = email_sender or SmtpEmailSender(settings)
+    app.state.store = store or S3ObjectStore(settings)
 
     app.add_middleware(RequestContextMiddleware)
     install_error_handlers(app)
@@ -66,6 +74,7 @@ def create_app(
     v1 = APIRouter(prefix="/api/v1")
     v1.include_router(auth_router)
     v1.include_router(orgs_router)
+    v1.include_router(documents_router)
     v1.include_router(invitations_router)
     app.include_router(v1)
 

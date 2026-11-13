@@ -4,7 +4,6 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
 import asyncpg
-import httpx
 from redis.asyncio import Redis
 
 from app.core.config import Settings
@@ -69,11 +68,11 @@ def build_checks(settings: Settings) -> list[Check]:
         return None
 
     async def object_store() -> str | None:
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.get(settings.object_store_health_url)
-        if response.status_code != 200:
-            raise _SafeError(f"unexpected status {response.status_code}")
-        return None
+        # Authenticated HEAD on the bucket: proves reachability, credentials and that it exists.
+        from app.infrastructure.storage.s3 import S3ObjectStore
+
+        await S3ObjectStore(settings).check()
+        return f"bucket {settings.s3_bucket}"
 
     return [
         lambda: _timed("postgres", postgres, timeout),

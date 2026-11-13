@@ -170,3 +170,14 @@ describe("helpers", () => {
     }
   });
 });
+
+describe("multipart uploads", () => {
+  it("never forces a JSON content type on FormData (the browser must set the boundary)", async () => {
+    queue.push(ok([]));
+    const body = new FormData();
+    body.append("collection_id", "c1");
+    await request("/orgs/o/documents", { method: "POST", body });
+    expect(calls[0]!.headers.get("content-type")).toBeNull();
+    expect(calls[0]!.headers.get("x-csrf-token")).toBe("tok123"); // CSRF still applies
+  });
+});

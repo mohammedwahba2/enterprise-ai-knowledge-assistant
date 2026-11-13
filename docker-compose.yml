@@ -65,7 +65,10 @@ services:
       # The API connects as the restricted role `app_rw` (NOT the owner), so RLS always applies.
       DATABASE_URL: postgresql://app_rw:${APP_DB_PASSWORD:?run ./scripts/init-env.sh}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
-      OBJECT_STORE_HEALTH_URL: http://objectstore:9333/cluster/healthz
+      S3_ENDPOINT: http://objectstore:8333
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?run ./scripts/init-env.sh}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?run ./scripts/init-env.sh}
+      S3_BUCKET: ${S3_BUCKET:-knowledge-documents}
     depends_on:
       migrate: { condition: service_completed_successfully }
       postgres: { condition: service_healthy }

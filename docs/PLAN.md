@@ -466,7 +466,8 @@ Design tokens (color, type incl. Arabic, spacing, radius, motion), component inv
 | **Stage 1 — Foundations** (repo layout, Compose stack, FastAPI health/logging/errors, Next.js shell with EN/AR + RTL guards, tokens, CI) | **[implemented]**, see below |
 | **Stage 2 — Identity** (sign-up/in/out, refresh rotation, password reset, locale preference, auth screens EN/AR) | **[implemented]**, awaiting your review; see §19 |
 | **Stage 3 — Tenancy & RBAC** (orgs, memberships, invitations, policy module, RLS, org switcher, isolation suites) | **[implemented]**, awaiting your review; see §20 |
-| Stages 4–12 | **[planned]** |
+| **Stage 4 — Collections, permissions & documents** (collections + ACLs, upload, storage, dedupe, library UI, access-aware RLS) | **[implemented]**, awaiting your review; see §21 |
+| Stages 5–12 | **[planned]** |
 | Plan, decision log, design audit | **[done]** |
 | Three exploratory mockups + **final refined mockup** (throwaway HTML, synthetic content) | **[done]**, not product code; final one awaits your approval |
 | Hardware check of the dev machine | **[done]**: Apple Silicon, 16 GB, 10 cores |
@@ -625,4 +626,61 @@ API running as `app_rw` (confirmed), migration run as owner; in the browser (Ara
 | Playwright end-to-end tests (auth, workspace creation, invitations, switcher) | not done (manual browser verification only) | stage 9 |
 | Tablet/mobile live review of the signed-in shell with the new org switcher | not done (desktop EN/AR verified; auth screens covered in §19.1) | stage 9/10 |
 | Deleting a workspace with documents (storage cleanup) | n/a until documents exist | stage 4 |
+| Nothing committed | by instruction | until you ask |
+
+---
+
+## 21. Stage 4 report: Collections, permissions & documents (implemented, awaiting review)
+
+### 21.1 What was built
+**Data model** (migration `0003`): `collections` (name unique per org case-insensitively, `org|restricted`), `collection_members`, `documents` (display filename, sniffed MIME, size, SHA-256, opaque storage key, status, soft delete + `purged_at`; partial unique index on (org, collection, sha256) among non-deleted rows = per-collection dedupe). The status check already lists every planned state; only `uploaded` is used until stage 5. Every workspace gets a "General" collection at creation (existing ones were backfilled by the migration).
+**Access rules:** org-visible collections are visible to every member; restricted ones to listed users, plus owners and admins (who can access every collection; they could self-grant anyway). Viewing/downloading: viewer and above; upload/delete: editor and above; collection and ACL management: admin and above. Inaccessible collections and documents answer **404**, never 403 (role failures answer 403).
+**API:** `GET/POST /orgs/{org}/collections`, `PATCH/DELETE .../collections/{id}`, `GET/PUT .../collections/{id}/members`, `POST/GET /orgs/{org}/documents` (multipart, up to 10 files of 50 MB, cursor pagination, filters), `GET/DELETE .../documents/{id}`, `GET .../documents/{id}/file`.
+**Upload pipeline:** stream to a temp file while hashing and enforcing the size cap; sniff the type from CONTENT (PDF header; DOCX/PPTX must be a ZIP containing their main part, with entry-count/uncompressed-size/path-traversal guards; text/Markdown must be valid UTF-8 without NUL bytes) and require the extension to agree (type confusion, unsupported Office types, HTML, executables are refused); sanitize the display filename (path parts, control and bidi-override characters stripped, ZWNJ kept for Arabic-script text); dedupe; store the object under an opaque key `org/{org}/doc/{id}` (the filename never reaches storage); insert the row; on any failure after the object was stored the object is removed (no object without a row, no row without an object). Per-file results `created | duplicate | rejected` with stable codes (`UNSUPPORTED_TYPE`, `FILE_TOO_LARGE`, `EMPTY_FILE`, `CORRUPT_FILE`); `TOO_MANY_FILES` and `STORAGE_UNAVAILABLE` (503) fail the request. Concurrent identical uploads yield exactly one document.
+**Download:** streamed through the API with authorization on **every** request; headers `nosniff`, `Content-Security-Policy: sandbox`, `Cache-Control: private, no-store`; only PDFs may render inline, everything else is an attachment, Markdown is served as plain text; RFC 6266 filename encoding that cannot inject headers.
+**Deletion:** document delete is soft in the database and removes the object immediately (`purged_at` set; a failed purge is logged and swept later). Collection delete requires it to be empty. **Workspace delete now also deletes every object under `org/{id}/`** (carried-forward item from stage 3).
+**Readiness** now performs an authenticated `HEAD` on the bucket (reachability, credentials and bucket existence), replacing the master health URL.
+**Frontend:** Library page `/{org}/library` in the approved dense-table style: collection filter chips with lock icon for restricted ones, debounced search, "load more" pagination, drag-and-drop anywhere (overlay), upload with per-file outcomes, download, inline delete confirmation (editors and above), empty states by role, mobile stacked layout, Western digits and bdi-isolated mixed-direction names in Arabic. Collection and ACL management UI is **not** built (it is stage 10); collections are manageable through the API.
+
+### 21.2 Document permissions at three layers
+1. **Policy module** (`policies.py`): hand-written role x action matrix extended with `COLLECTION_MANAGE`, `DOCUMENT_VIEW/UPLOAD/DELETE`.
+2. **Application layer:** `_accessible_ids()` computes the caller's accessible collections explicitly and every collection/document query filters by it.
+3. **PostgreSQL RLS:** `documents`, `collections` and `collection_members` policies call SECURITY DEFINER helpers (`app_is_admin`, `app_in_collection`, `app_can_access_collection`), so a member who is not listed cannot read, update, delete, insert into, or move rows into a restricted collection even if every application filter were wrong. The same helper is what stage 6's `chunks` table must use (a catalog test fails if a table with `collection_id` lacks the access-aware policy).
+
+### 21.3 Tests (261 backend, 57 frontend; all green; ruff, mypy strict, eslint, stylelint, tsc clean)
+- **Real object store:** backend tests run against a real, authenticated SeaweedFS container: round trip incl. a 12 MB multipart object, wrong credentials refused, unreachable endpoint, missing bucket/object, prefix deletion that respects neighbour prefixes. This closes the stage 1 item "authenticated S3 round trip".
+- **Permission matrix** (`test_document_permissions.py`, hand-written expectations): 5 roles x (org-visible, restricted-listed, restricted-unlisted) x list/get/download/upload/delete; unfiltered listings never include inaccessible collections; revocation and demotion take effect immediately; removed members lose every document.
+- **DB level** (`test_rls_documents.py`, raw SQL as `app_rw`): reads follow collection access; unlisted members cannot update/delete/insert/move rows or add themselves to the list; a forged org scope without membership sees nothing; cross-tenant inserts are refused; access-function truth table.
+- **Isolation matrix** (generated from OpenAPI) extended to collections and documents (multipart upload and file download included): outsiders get an identical 404 on all 18 org-scoped routes with real, random and mixed ids; a same-org editor without collection access gets 403/404 on every collection/document route; nothing changes.
+- **Upload security:** disguised executables, HTML, polyglots, wrong-family Office files, zip path traversal / entry floods, NUL bytes, invalid UTF-8, empty files, oversize, too many files; traversal/control/bidi filenames; header-injection-proof Content-Disposition; storage keys never contain filenames; dedupe per collection only (no cross-tenant or cross-collection oracle); simultaneous identical uploads; storage outage (503, nothing left behind); database failure after the object was stored (object removed).
+- **Mutation checks** (scratch copy): (D1) removing the application-layer access filter: the permission matrix still passes (RLS holds); (D2) disabling RLS on the three tables: the matrix still passes (application layer holds) and 8 DB-level tests fail; (D3) removing the orphan cleanup: the failure-path tests fail; (D4) weakening content sniffing: 22 tests fail.
+- Bugs found by tests/runs and fixed: a collection `INSERT ... RETURNING` is invisible to a policy that re-reads the same table (policies now use the row's own columns); an orphan-object window if constructing the row failed after the object was stored; SeaweedFS refuses writes once many buckets exhaust its volumes (tests share one bucket; production uses one); transient `InternalError` on the first write to a new bucket (retried briefly; authentication errors never retried); status CSS class clash (`n`).
+
+### 21.4 Live verification (Docker Compose, through Caddy)
+Readiness reports `bucket knowledge-documents` after an authenticated check; migration `0003` applied on the existing database and backfilled "General". curl: good PDF created, disguised executable rejected (`UNSUPPORTED_TYPE`), re-upload deduplicated, download byte-identical with the safe headers, a viewer in another workspace gets 403 on upload and 404 for a foreign document id, the object store is not reachable from the host. Browser: drag-and-drop upload (overlay shown) of an Arabic-named Markdown file and an `.exe` (preflight rejection), Arabic RTL library, inline delete confirmation, row and object removed (verified in the bucket), mobile stacked layout.
+
+### 21.5 Decisions and deviations for your review
+- **No presigned URLs.** Downloads stream through the API with per-request authorization; the object store is never exposed to browsers, and revoked access takes effect immediately. Trade-off: file bytes pass through the API (no HTTP Range support yet; stage 10's viewer can add it).
+- **No `Idempotency-Key`** (PLAN §8): content-hash dedupe already makes retries idempotent.
+- **Upload size enforcement:** Starlette spools multipart bodies to disk before the handler runs, so the per-file limit is checked after spooling; Caddy caps the request body at 520 MB to bound disk use. Streaming enforcement would need a custom multipart parser. No antivirus scanning (ClamAV remains optional/future).
+- **Admins and owners can access every collection**, including restricted ones.
+- Collection delete requires an empty collection; changing a restricted collection to org-visible clears its member list.
+- Documents stay `uploaded`: no parsing, page counts or language detection until stage 5, so the Library has no "Needs attention" panel, language or pages columns yet.
+- Soft-deleted documents keep their rows (and hash) for a later sweep job; the sweeper itself belongs to stage 5's background worker.
+- Per-org storage quotas are not implemented.
+
+### 21.6 Outstanding verification items (carried forward, still open)
+| Item | Status | When |
+|---|---|---|
+| gitleaks locally; GitHub Actions workflow verified (now also needs Docker-in-CI for the Postgres, Redis and SeaweedFS testcontainers) | not done (no remote, gitleaks not installed) | before the first push |
+| ~~Authenticated SeaweedFS S3 round trip~~ | **done in this stage** (tests + readiness + live) | closed |
+| Python 3.12 test run (container image runs 3.12; the suite only ran on 3.11 locally) | not done | CI before first push |
+| Real SMTP (STARTTLS/auth) delivery | not done (Mailpit only) | before any deployment |
+| Rate limits, refresh locking, RLS helper cost (`app_is_member` / `app_can_access_collection` per row) with multiple replicas and large tables | not done | stage 11 |
+| Playwright end-to-end tests (auth, workspaces, invitations, upload, library) | not done (manual browser verification only) | stage 9 |
+| Tablet width and signed-in shell review (org switcher, Library) | not done (desktop EN/AR and mobile verified) | stage 9/10 |
+| Orphaned objects left by failed purges / failed workspace-delete cleanup | logged only; no sweeper yet | stage 5 (worker) |
+| SeaweedFS capacity settings for production (`-volume.max`, volume size) | not tuned | before deployment |
+| Collection and ACL management UI | not built | stage 10 |
+| The 10-second refresh grace-window trade-off | unchanged and documented in §19.1 | n/a |
 | Nothing committed | by instruction | until you ask |
