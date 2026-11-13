@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Direction C — Chancery</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FFFFFF;--bone:#FAF8F5;--ink:#1B1A1C;--ink2:#625F63;--ink3:#97939A;--line:#E8E4E0;--ox:#8A2C3B;--ox-w:#F6E9EB;--ok:#2F6B4F;--warn:#9B6A1A;
+--ui:"Instrument Sans","Noto Sans Arabic",system-ui,sans-serif;--ser:"Source Serif 4","Noto Sans Arabic",Georgia,serif;--mono:"IBM Plex Mono",ui-monospace,monospace}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--ink);font:400 14px/1.55 var(--ui);-webkit-font-smoothing:antialiased}
+[dir=rtl] body{font-family:"Noto Sans Arabic","Instrument Sans",sans-serif}
+.top{display:flex;align-items:center;gap:28px;padding:0 40px;height:56px;border-bottom:1px solid var(--line)}
+.logo{font:600 15px var(--ser);display:flex;gap:9px;align-items:center}
+.logo i{width:18px;height:18px;border:1.5px solid var(--ox);border-radius:50% 50% 50% 2px}
+.top nav{display:flex;gap:22px;color:var(--ink2);font-size:13.5px}
+.top nav a{color:inherit;text-decoration:none;padding:18px 0}
+.top nav a[aria-current]{color:var(--ink);box-shadow:inset 0 -2px var(--ox)}
+.top .r{margin-inline-start:auto;display:flex;gap:16px;align-items:center;color:var(--ink2);font-size:13px}
+.top .org{border:1px solid var(--line);border-radius:6px;padding:4px 10px}
+.pg{max-width:1120px;margin:0 auto;padding:56px 40px 120px}
+.eyebrow{font:500 12px var(--mono);color:var(--ox);letter-spacing:.04em;text-transform:uppercase}
+[dir=rtl] .eyebrow{letter-spacing:0;font-family:var(--ui)}
+h1{font:400 40px/1.15 var(--ser);letter-spacing:-.015em;margin:10px 0 28px;max-width:720px}
+[dir=rtl] h1{font-size:34px;line-height:1.5}
+.ask{display:flex;align-items:center;gap:14px;border:1px solid var(--ink);border-radius:8px;padding:14px 16px;max-width:760px;background:#fff}
+.ask input{all:unset;flex:1;font:400 16px var(--ui)}
+.ask input::placeholder{color:var(--ink3)}
+.btn{background:var(--ox);color:#fff;border-radius:6px;padding:7px 14px;font-weight:500;font-size:13px}
+.ex{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;max-width:760px}
+.ex span{border:1px solid var(--line);border-radius:999px;padding:4px 12px;color:var(--ink2);font-size:12.5px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);margin-top:64px;border-top:1px solid var(--ink)}
+.stats div{padding:20px 24px 20px 0}
+.stats div+div{padding-inline-start:24px;border-inline-start:1px solid var(--line)}
+.stats b{display:block;font:400 38px/1 var(--ser);font-variant-numeric:tabular-nums;margin-bottom:8px}
+.stats span{color:var(--ink2);font-size:13px}
+.stats small{display:block;color:var(--ink3);font-size:12px;margin-top:2px}
+.two{display:grid;grid-template-columns:1.3fr 1fr;gap:56px;margin-top:44px}
+h3{font:600 13px var(--ui);padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:2px}
+.r2{display:flex;gap:12px;align-items:baseline;padding:11px 0;border-bottom:1px solid var(--line)}
+.r2 .t{font-weight:500}.r2 .d{margin-inline-start:auto;color:var(--ink3);font-size:12.5px;font-family:var(--mono)}
+[dir=rtl] .r2 .d{font-family:var(--ui)}
+.pill{font-size:12px;padding:2px 9px;border-radius:999px;background:var(--bone);border:1px solid var(--line);color:var(--ink2)}
+.pill.w{background:#FBF2E0;border-color:#F0DDB4;color:var(--warn)}.pill.e{background:var(--ox-w);border-color:#EBCDD2;color:var(--ox)}
+/* CHAT */
+.cw{max-width:760px;margin:0 auto;padding:48px 24px 140px}
+.q{font:400 26px/1.3 var(--ser);letter-spacing:-.01em;margin:8px 0 30px}
+[dir=rtl] .q{font-size:24px;line-height:1.7}
+.state{display:inline-flex;gap:8px;align-items:center;font-size:12.5px;color:var(--ok);border:1px solid #CFE3D8;background:#F1F8F4;border-radius:999px;padding:3px 11px;margin-bottom:18px}
+.ans p{font:400 17px/1.75 var(--ser);margin-bottom:14px}
+[dir=rtl] .ans p{line-height:2.05;font-size:17px}
+sup{font:500 11px var(--mono);color:var(--ox);margin-inline:2px}
+.fn{margin-top:26px;border-top:1px solid var(--ink)}
+.fn h3{border:0;padding:10px 0 4px;color:var(--ink2);font-weight:500}
+.thumbs{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:4px}
+.src{display:grid;grid-template-columns:96px 1fr;gap:14px}
+.th{background:#fff;border:1px solid var(--line);box-shadow:0 1px 3px rgba(27,26,28,.08);height:124px;padding:9px;position:relative;overflow:hidden}
+.th i{display:block;height:4px;background:#E9E6E1;margin:5px 0;border-radius:2px}
+.th i.h{background:#F2D98F;height:7px}
+.th:after{content:attr(data-p);position:absolute;bottom:4px;inset-inline-end:6px;font:400 9px var(--mono);color:var(--ink3)}
+.src b{font-weight:500;display:block}.src small{color:var(--ink2);display:block;font-size:12.5px}
+.src q{display:block;margin-top:6px;font:italic 400 13px/1.5 var(--ser);color:var(--ink2);quotes:none}
+.src .n{font:500 11px var(--mono);color:var(--ox)}
+.acts{display:flex;gap:16px;margin-top:22px;font-size:12.5px;color:var(--ink2)}
+.comp{position:fixed;bottom:56px;inset-inline:0;display:flex;justify-content:center;pointer-events:none}
+.comp div{pointer-events:auto;width:min(720px,calc(100% - 48px));background:#fff;border:1px solid var(--ink);border-radius:8px;padding:12px 16px;color:var(--ink3);box-shadow:0 6px 24px rgba(27,26,28,.08)}
+</style></head>
+<body>
+<div class="top"><div class="logo"><i></i>Halden</div>
+  <nav><a href="#" aria-current="page" data-en="Ask" data-ar="اسأل">Ask</a><a href="#" data-en="Library" data-ar="المكتبة">Library</a><a href="#" data-en="Collections" data-ar="المجموعات">Collections</a><a href="#" data-en="Members" data-ar="الأعضاء">Members</a><a href="#" data-en="Audit" data-ar="التدقيق">Audit</a></nav>
+  <div class="r"><span class="org">Halden Group ⌄</span><span>Layla Haddad</span></div></div>
+
+<section class="pg" data-screen="home">
+  <div class="eyebrow" data-en="Tuesday briefing" data-ar="موجز الثلاثاء">Briefing</div>
+  <h1 data-en="Ask your documents. Every answer shows its page." data-ar="اسأل مستنداتك. وكل إجابة تُظهر صفحتها.">Ask your documents.</h1>
+  <div class="ask"><input data-ph-en="How many days of annual leave do new employees get?" data-ph-ar="كم يوماً من الإجازة السنوية يحصل عليها الموظفون الجدد؟" placeholder="Ask"><span class="btn" data-en="Ask" data-ar="اسأل">Ask</span></div>
+  <div class="ex"><span data-en="Carry-over rules" data-ar="قواعد الترحيل">x</span><span data-en="Travel per-diem, Gulf" data-ar="بدل السفر في الخليج">x</span><span data-en="Laptop encryption" data-ar="تشفير الأجهزة">x</span></div>
+  <div class="stats">
+    <div><b>126</b><span data-en="Documents searchable" data-ar="مستنداً قابلاً للبحث">x</span><small data-en="4,812 pages · EN 71% · AR 29%" data-ar="٤٬٨١٢ صفحة · إنجليزي ٧١٪ · عربي ٢٩٪">x</small></div>
+    <div><b>38</b><span data-en="Questions this week" data-ar="سؤالاً هذا الأسبوع">x</span><small data-en="31 supported · 7 not found" data-ar="٣١ مدعومة · ٧ غير موجودة">x</small></div>
+    <div><b>2</b><span data-en="Documents need attention" data-ar="مستندان يحتاجان انتباهاً">x</span><small data-en="1 scanned · 1 failed to parse" data-ar="١ ممسوح ضوئياً · ١ فشلت معالجته">x</small></div>
+  </div>
+  <div class="two">
+    <div><h3 data-en="Recent questions" data-ar="الأسئلة الأخيرة">Recent</h3>
+      <div class="r2"><span class="t" data-en="Annual leave &amp; carry-over" data-ar="الإجازة السنوية والترحيل">x</span><span class="pill" data-en="Supported" data-ar="مدعومة">x</span><span class="d" data-en="today" data-ar="اليوم">x</span></div>
+      <div class="r2"><span class="t" data-en="Travel per-diem, Gulf" data-ar="بدل السفر في الخليج">x</span><span class="pill" data-en="Supported" data-ar="مدعومة">x</span><span class="d" data-en="yesterday" data-ar="أمس">x</span></div>
+      <div class="r2"><span class="t" data-en="Vendor contracts above 50k" data-ar="عقود الموردين فوق ٥٠ ألف">x</span><span class="pill w" data-en="Not found" data-ar="غير موجودة">x</span><span class="d" data-en="Mon" data-ar="الاثنين">x</span></div></div>
+    <div><h3 data-en="Needs attention" data-ar="يحتاج انتباهاً">Needs attention</h3>
+      <div class="r2"><span class="t">Supplier_Agreement_scan.pdf</span><span class="pill e" data-en="Scanned, no text" data-ar="ممسوح، بلا نص">x</span></div>
+      <div class="r2"><span class="t">Fleet_Manual_v2.docx</span><span class="pill e" data-en="Parse failed" data-ar="فشل التحليل">x</span></div></div>
+  </div>
+</section>
+
+<section class="cw" data-screen="chat" hidden>
+  <div class="eyebrow" data-en="Question" data-ar="السؤال">Question</div>
+  <div class="q" data-en="How many days of annual leave do new employees get, and can unused days be carried over?" data-ar="كم يوماً من الإجازة السنوية يحصل عليها الموظفون الجدد، وهل يمكن ترحيل الأيام غير المستخدمة؟">q</div>
+  <div class="state" data-en="✓ Supported by 2 passages in 1 document" data-ar="✓ مدعومة بمقطعين من مستند واحد">x</div>
+  <div class="ans"><p><span data-en="New employees receive 25 working days of paid annual leave per calendar year, pro-rated from their start date." data-ar="يحصل الموظفون الجدد على ٢٥ يوم عمل من الإجازة السنوية المدفوعة في السنة الميلادية، وتُحتسب بالتناسب من تاريخ المباشرة.">x</span><sup>1</sup></p>
+    <p><span data-en="Up to five unused days may be carried into the following year, and are forfeited after 31 March." data-ar="يجوز ترحيل ما يصل إلى خمسة أيام غير مستخدمة إلى العام التالي، وتسقط بعد ٣١ مارس.">x</span><sup>2</sup></p></div>
+  <div class="fn"><h3 data-en="Sources" data-ar="المصادر">Sources</h3>
+    <div class="thumbs">
+      <div class="src"><div class="th" data-p="14"><i></i><i style="width:70%"></i><i class="h"></i><i class="h" style="width:80%"></i><i></i><i style="width:60%"></i><i></i></div><div><span class="n">1</span><b data-en="Employee Handbook 2025" data-ar="دليل الموظف ٢٠٢٥">x</b><small data-en="p. 14 · §4.2 Annual leave" data-ar="ص ١٤ · ٤٫٢ الإجازة السنوية">x</small><q data-en="…25 working days… accrued monthly…" data-ar="…٢٥ يوم عمل… تُستحق شهرياً…">x</q></div></div>
+      <div class="src"><div class="th" data-p="15"><i></i><i style="width:85%"></i><i></i><i class="h"></i><i class="h" style="width:90%"></i><i style="width:55%"></i><i></i></div><div><span class="n">2</span><b data-en="Employee Handbook 2025" data-ar="دليل الموظف ٢٠٢٥">x</b><small data-en="p. 15 · §4.4 Carry-over" data-ar="ص ١٥ · ٤٫٤ الترحيل">x</small><q data-en="…maximum of five (5) days… forfeited after 31 March…" data-ar="…بحد أقصى خمسة (٥) أيام… تسقط بعد ٣١ مارس…">x</q></div></div>
+    </div></div>
+  <div class="acts"><span data-en="Helpful" data-ar="مفيدة">x</span><span data-en="Wrong" data-ar="خاطئة">x</span><span data-en="Open page 15" data-ar="افتح الصفحة ١٥">x</span></div>
+</section>
+<div class="comp" data-screen="chat" hidden><div data-en="Ask a follow-up…" data-ar="اطرح سؤالاً متابعاً…">Follow-up</div></div>
+<script src="shared.js"></script>
+</body></html>

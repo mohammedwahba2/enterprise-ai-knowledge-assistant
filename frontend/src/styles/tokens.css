@@ -1,0 +1,26 @@
+/* Design tokens from the approved "Reading Room" mockup (docs/design/final). Light theme only for v1. */
+:root {
+  --paper: #f7f5f0;
+  --raised: #fff;
+  --sunken: #efece5;
+  --ink: #17181b;
+  --ink-2: #5e6068;
+  --ink-3: #8a8b90;
+  --hair: #e3dfd6;
+  --accent: #1f6f63;
+  --accent-wash: #e3efec;
+  --highlight: #f6e7b4;
+  --ochre: #9a6b12;
+  --ochre-wash: #f3ebd6;
+  --brick: #b3402a;
+  --font-ui: "Geist Variable", "IBM Plex Sans Arabic", system-ui, sans-serif;
+  --font-read: "Newsreader Variable", "Noto Naskh Arabic", georgia, serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+}
+
+/* Arabic: Arabic faces lead; no Latin mono for labels; looser leading for reading text. */
+:root:lang(ar) {
+  --font-ui: "IBM Plex Sans Arabic", "Geist Variable", system-ui, sans-serif;
+  --font-read: "Noto Naskh Arabic", "Newsreader Variable", georgia, serif;
+  --font-mono: "IBM Plex Sans Arabic", "Geist Mono Variable", sans-serif;
+}

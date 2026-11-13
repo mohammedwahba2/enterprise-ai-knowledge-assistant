@@ -1,0 +1,149 @@
+import os
+from collections.abc import AsyncIterator, Iterator
+from contextlib import asynccontextmanager
+from dataclasses import dataclass, field
+
+import pytest
+from alembic import command
+from alembic.config import Config
+from httpx import ASGITransport, AsyncClient
+from redis.asyncio import Redis
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import create_async_engine
+from testcontainers.community.postgres import PostgresContainer
+from testcontainers.community.redis import RedisContainer
+
+from app.core.config import Settings
+from app.core.readiness import Check, CheckResult
+from app.db.base import to_async_url
+from app.main import create_app
+
+PG_IMAGE = "pgvector/pgvector:pg16"
+REDIS_IMAGE = "redis:7-alpine"
+
+
+def fake_check(name: str, ok: bool = True, detail: str | None = None) -> Check:
+    async def run() -> CheckResult:
+        return CheckResult(name, ok, 0.1, detail)
+
+    return run
+
+
+# ---------- real infrastructure (testcontainers), one per test session ----------
+
+
+@pytest.fixture(scope="session")
+def pg_url() -> Iterator[str]:
+    with PostgresContainer(PG_IMAGE, username="test", password="test", dbname="test") as pg:
+        url = pg.get_connection_url().replace("+psycopg2", "")
+        os.environ["DATABASE_URL"] = url
+        cfg = Config("alembic.ini")
+        command.upgrade(cfg, "head")
+        yield url
+
+
+@pytest.fixture(scope="session")
+def redis_url() -> Iterator[str]:
+    with RedisContainer(REDIS_IMAGE) as r:
+        yield f"redis://{r.get_container_host_ip()}:{r.get_exposed_port(6379)}/0"
+
+
+# ---------- app wiring ----------
+
+
+@dataclass
+class Outbox:
+    """Test-only email sink. The shipped app can only send through SMTP."""
+
+    messages: list[dict[str, str]] = field(default_factory=list)
+
+    async def send(self, *, to: str, subject: str, body: str) -> None:
+        self.messages.append({"to": to, "subject": subject, "body": body})
+
+    def last_token(self) -> str:
+        body = self.messages[-1]["body"]
+        return body.split("#token=", 1)[1].split()[0]
+
+
+@pytest.fixture
+def outbox() -> Outbox:
+    return Outbox()
+
+
+@pytest.fixture
+def settings(pg_url: str, redis_url: str) -> Settings:
+    return Settings(
+        app_env="test",
+        log_json=True,
+        database_url=pg_url,
+        redis_url=redis_url,
+        app_origin="http://localhost:8080",
+        cookie_secure=False,
+        argon2_memory_kib=1024,  # cheap hashing in tests; production defaults are tested separately
+        argon2_time_cost=1,
+        signin_account_limit=5,
+        refresh_grace_seconds=10,
+    )
+
+
+@pytest.fixture(autouse=True)
+async def _clean_state(request: pytest.FixtureRequest) -> AsyncIterator[None]:
+    """Fresh tables and Redis for every test that touches infrastructure."""
+    if "settings" not in request.fixturenames:
+        yield
+        return
+    s: Settings = request.getfixturevalue("settings")
+    engine = create_async_engine(to_async_url(s.database_url))
+    async with engine.begin() as conn:
+        await conn.execute(text("TRUNCATE users, refresh_tokens, password_resets CASCADE"))
+    await engine.dispose()
+    r = Redis.from_url(s.redis_url)
+    await r.flushdb()
+    await r.aclose()
+    yield
+
+
+@asynccontextmanager
+async def make_client(
+    settings: Settings,
+    *,
+    email_sender: object,
+    ip: str = "203.0.113.7",
+    base_url: str = "http://localhost:8080",
+) -> AsyncIterator[AsyncClient]:
+    """A browser-like client (cookie jar, same-origin Origin header) with clean teardown."""
+    app = create_app(settings, checks=[], email_sender=email_sender)  # type: ignore[arg-type]
+    transport = ASGITransport(app=app, client=(ip, 5000))
+    try:
+        async with AsyncClient(
+            transport=transport, base_url=base_url, headers={"origin": "http://localhost:8080"}
+        ) as c:
+            yield c
+    finally:
+        await app.state.engine.dispose()
+        await app.state.redis.aclose()
+
+
+@pytest.fixture
+async def client(settings: Settings, outbox: Outbox) -> AsyncIterator[AsyncClient]:
+    async with make_client(settings, email_sender=outbox) as c:
+        yield c
+
+
+# ---------- infrastructure-free fixtures for unit-style tests ----------
+
+
+@pytest.fixture
+def plain_settings() -> Settings:
+    return Settings(app_env="test", log_json=True)
+
+
+@pytest.fixture
+async def plain_client(plain_settings: Settings) -> AsyncIterator[AsyncClient]:
+    app = create_app(plain_settings, checks=[fake_check("postgres"), fake_check("redis")])
+    try:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            yield c
+    finally:
+        await app.state.engine.dispose()
+        await app.state.redis.aclose()

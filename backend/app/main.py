@@ -1,0 +1,72 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
+import structlog
+from fastapi import APIRouter, FastAPI
+from redis.asyncio import Redis
+
+from app.api import health
+from app.core.config import Settings, get_settings
+from app.core.errors import install_error_handlers
+from app.core.logging import configure_logging
+from app.core.middleware import RequestContextMiddleware
+from app.core.readiness import Check, build_checks
+from app.db.base import make_engine, make_sessionmaker
+from app.modules.identity.email import EmailSender, SmtpEmailSender
+from app.modules.identity.passwords import PasswordService
+from app.modules.identity.rate_limit import RateLimiter, SessionRevocations
+from app.modules.identity.router import router as auth_router
+
+
+def create_app(
+    settings: Settings | None = None,
+    checks: list[Check] | None = None,
+    *,
+    email_sender: EmailSender | None = None,
+) -> FastAPI:
+    settings = settings or get_settings()
+    configure_logging(settings.log_level, settings.log_json)
+
+    engine = make_engine(settings.database_url)
+    redis = Redis.from_url(settings.redis_url)
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        yield
+        await engine.dispose()
+        await redis.aclose()
+
+    app = FastAPI(
+        title="Enterprise AI Knowledge Assistant API",
+        version="0.2.0",
+        docs_url="/api/docs" if settings.app_env != "prod" else None,
+        redoc_url=None,
+        openapi_url="/api/openapi.json" if settings.app_env != "prod" else None,
+        lifespan=lifespan,
+    )
+    app.state.settings = settings
+    app.state.readiness_checks = checks if checks is not None else build_checks(settings)
+    app.state.engine = engine
+    app.state.sessionmaker = make_sessionmaker(engine)
+    app.state.redis = redis
+    app.state.limiter = RateLimiter(redis)
+    app.state.revocations = SessionRevocations(redis, settings.access_ttl_seconds + 60)
+    app.state.passwords = PasswordService(
+        memory_kib=settings.argon2_memory_kib,
+        time_cost=settings.argon2_time_cost,
+        parallelism=settings.argon2_parallelism,
+    )
+    app.state.email_sender = email_sender or SmtpEmailSender(settings)
+
+    app.add_middleware(RequestContextMiddleware)
+    install_error_handlers(app)
+    app.include_router(health.router, prefix="/api")
+    v1 = APIRouter(prefix="/api/v1")
+    v1.include_router(auth_router)
+    app.include_router(v1)
+
+    structlog.get_logger("app").info("startup", env=settings.app_env)
+    return app
+
+
+app = create_app()

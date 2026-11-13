@@ -1,0 +1,81 @@
+{
+  "App": {
+    "name": "Knowledge Assistant",
+    "skipToContent": "Skip to content"
+  },
+  "Nav": {
+    "ask": "Ask",
+    "library": "Library",
+    "attention": "Needs attention",
+    "collections": "Collections",
+    "primary": "Primary",
+    "comingSoon": "Not available yet"
+  },
+  "Locale": {
+    "switchTo": "العربية",
+    "switchLabel": "Switch language to Arabic"
+  },
+  "Home": {
+    "title": "What do you need to find in your documents?",
+    "askPlaceholder": "Ask a question about your company's documents…",
+    "askUnavailable": "Asking opens once documents have been added.",
+    "emptyTitle": "Your library is empty",
+    "emptyBody": "Documents you upload will appear here, and answers will cite the exact page they came from."
+  },
+  "Auth": {
+    "email": "Email",
+    "password": "Password",
+    "showPassword": "Show",
+    "hidePassword": "Hide",
+    "signOut": "Sign out",
+    "loading": "Loading…",
+    "backToSignIn": "Back to sign in",
+    "signIn": {
+      "title": "Sign in",
+      "submit": "Sign in",
+      "forgot": "Forgot your password?",
+      "noAccount": "New here?",
+      "createAccount": "Create an account"
+    },
+    "signUp": {
+      "title": "Create your account",
+      "name": "Full name",
+      "passwordHint": "At least {min} characters. A long phrase is easier to remember and harder to guess.",
+      "submit": "Create account",
+      "haveAccount": "Already have an account?",
+      "signInLink": "Sign in"
+    },
+    "forgot": {
+      "title": "Reset your password",
+      "body": "Enter your email and we'll send you a link to choose a new password.",
+      "submit": "Send reset link",
+      "sentTitle": "Check your email",
+      "sentBody": "If an account exists for that address, a reset link is on its way. It expires in {minutes} minutes and works once."
+    },
+    "reset": {
+      "title": "Choose a new password",
+      "password": "New password",
+      "submit": "Update password",
+      "missingToken": "This reset link is incomplete. Request a new one.",
+      "doneTitle": "Password updated",
+      "done": "Your password has been changed and all other sessions were signed out. Sign in with your new password."
+    }
+  },
+  "Errors": {
+    "INVALID_CREDENTIALS": "Email or password is incorrect.",
+    "EMAIL_TAKEN": "An account with this email already exists.",
+    "WEAK_PASSWORD": "Choose a stronger password.",
+    "RATE_LIMITED": "Too many attempts. Try again in {minutes} min.",
+    "INVALID_TOKEN": "This reset link is invalid or has expired. Request a new one.",
+    "VALIDATION_ERROR": "Please check what you entered and try again.",
+    "CSRF_FAILED": "Your session expired. Reload the page and try again.",
+    "NETWORK": "Can't reach the server. Check your connection and try again.",
+    "UNKNOWN": "Something went wrong. Please try again.",
+    "reasons": {
+      "TOO_SHORT": "Use at least 10 characters.",
+      "TOO_LONG": "Use at most 128 characters.",
+      "TOO_COMMON": "That password is too common.",
+      "CONTAINS_EMAIL": "Don't include your email address in the password."
+    }
+  }
+}
