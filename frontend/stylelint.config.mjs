@@ -29,6 +29,7 @@ const config = {
     "custom-property-pattern": null,
     "selector-class-pattern": null,
     "value-keyword-case": null,
+    "no-descending-specificity": null,
   },
 };
 

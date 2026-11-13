@@ -18,7 +18,7 @@ const ok = (body: unknown = {}) => new Response(JSON.stringify(body), { status: 
 beforeEach(() => {
   calls = [];
   queue = [];
-  vi.stubGlobal("document", { cookie: "ka_csrf=tok123; other=1" });
+  vi.stubGlobal("document", { cookie: "ka_csrf=tok123; ka_session=1; other=1" });
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init: RequestInit) => {
@@ -101,6 +101,12 @@ describe("refresh-and-retry", () => {
     const [a, b] = await Promise.all([request("/a"), request("/b")]);
     expect([a, b]).toEqual([{ n: 1 }, { n: 2 }]);
     expect(calls.filter((c) => c.url.endsWith("/auth/refresh"))).toHaveLength(1);
+  });
+  it("anonymous visitors (no session hint cookie) never trigger a refresh", async () => {
+    vi.stubGlobal("document", { cookie: "other=1" });
+    queue.push(problem(401, "UNAUTHENTICATED"));
+    await expect(request("/me")).rejects.toMatchObject({ code: "UNAUTHENTICATED" });
+    expect(calls).toHaveLength(1);
   });
   it("auth endpoints never trigger a refresh", async () => {
     queue.push(problem(401, "UNAUTHENTICATED"));

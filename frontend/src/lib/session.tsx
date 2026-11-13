@@ -34,11 +34,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const setUser = useCallback((user: User) => setState({ status: "authenticated", user }), []);
   const signOut = useCallback(async () => {
-    try {
-      await auth.signOut();
-    } finally {
-      setState({ status: "anonymous", user: null });
-    }
+    // Only mark anonymous once the server confirmed: a failed request leaves HttpOnly cookies
+    // in place, and pretending to be signed out would be misleading.
+    await auth.signOut();
+    setState({ status: "anonymous", user: null });
   }, []);
 
   const value = useMemo<Ctx>(() => ({ ...state, setUser, signOut }), [state, setUser, signOut]);

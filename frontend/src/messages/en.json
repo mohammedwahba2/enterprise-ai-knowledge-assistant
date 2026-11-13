@@ -59,7 +59,8 @@
       "missingToken": "This reset link is incomplete. Request a new one.",
       "doneTitle": "Password updated",
       "done": "Your password has been changed and all other sessions were signed out. Sign in with your new password."
-    }
+    },
+    "signOutFailed": "Couldn't sign out. Check your connection and try again."
   },
   "Errors": {
     "INVALID_CREDENTIALS": "Email or password is incorrect.",

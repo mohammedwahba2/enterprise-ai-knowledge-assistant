@@ -120,7 +120,8 @@ export async function request<T>(
     return await parse<T>(await send(path, init));
   } catch (e) {
     if (retryOn401 && e instanceof ApiError && e.status === 401 && e.code === "UNAUTHENTICATED") {
-      if (await refreshSession()) return parse<T>(await send(path, init));
+      // No session hint cookie means there is nothing to refresh (anonymous visitor).
+      if (readCookie("ka_session") && (await refreshSession())) return parse<T>(await send(path, init));
     }
     throw e;
   }
