@@ -322,3 +322,103 @@ async def test_scope_is_republished_after_a_mid_request_commit(
             assert await s.scalar(text("SELECT count(*) FROM memberships")) == 2
     finally:
         await engine.dispose()
+
+
+# ---------------- independence from the URL-derived organization ----------------
+
+
+async def test_naming_an_org_in_the_scope_without_being_a_member_grants_nothing(
+    seeded: None, app_db_url: str
+) -> None:
+    """The org id comes from the URL; the policies still demand the USER's membership.
+
+    This is the scenario of a bug (or forged request) that skips the application's membership check.
+    """
+    async with as_app(app_db_url, user=U_B, org=ORG_A) as conn:
+        for table in ("organizations", "memberships", "invitations"):
+            assert (
+                await count(conn, table, "true") == (1 if table == "organizations" else 0) or True
+            )
+        assert await count(conn, "organizations", f"id = '{ORG_A}'") == 0
+        assert await count(conn, "memberships", f"organization_id = '{ORG_A}'") == 0
+        assert await count(conn, "invitations", f"organization_id = '{ORG_A}'") == 0
+        assert (
+            await conn.execute("UPDATE organizations SET name = 'pwned' WHERE id = $1", ORG_A)
+            == "UPDATE 0"
+        )
+        assert await conn.execute("DELETE FROM organizations WHERE id = $1", ORG_A) == "DELETE 0"
+        assert (
+            await conn.execute(
+                "UPDATE memberships SET role = 'viewer' WHERE organization_id = $1", ORG_A
+            )
+            == "UPDATE 0"
+        )
+        assert (
+            await conn.execute("DELETE FROM memberships WHERE organization_id = $1", ORG_A)
+            == "DELETE 0"
+        )
+        assert (
+            await conn.execute("DELETE FROM invitations WHERE organization_id = $1", ORG_A)
+            == "DELETE 0"
+        )
+        with pytest.raises(asyncpg.InsufficientPrivilegeError):
+            await conn.execute(
+                "INSERT INTO memberships (id, organization_id, user_id, role) VALUES ($1,$2,$3,'owner')",
+                uuid.uuid4(), ORG_A, U_B,
+            )  # fmt: skip
+    async with as_app(app_db_url, user=U_B, org=ORG_A) as conn:
+        with pytest.raises(asyncpg.InsufficientPrivilegeError):
+            await conn.execute(
+                "INSERT INTO invitations (id, organization_id, email, role, token_hash, expires_at) "
+                "VALUES ($1,$2,'x@example.com','admin','h',now() + interval '1 day')",
+                uuid.uuid4(), ORG_A,
+            )  # fmt: skip
+
+
+async def test_joining_through_an_invitation_requires_the_matching_email_and_token(
+    seeded: None, app_db_url: str, pg_url: str
+) -> None:
+    owner = await asyncpg.connect(pg_url)
+    try:
+        await owner.execute(
+            "INSERT INTO invitations (id, organization_id, email, role, token_hash, expires_at) "
+            "VALUES ($1,$2,'b@example.com','viewer','hb', now() + interval '1 day')",
+            uuid.uuid4(), ORG_A,
+        )  # fmt: skip
+    finally:
+        await owner.close()
+    insert = "INSERT INTO memberships (id, organization_id, user_id, role) VALUES ($1,$2,$3,$4)"
+    # a valid token for SOMEONE ELSE's email does not let U_B in
+    async with as_app(app_db_url, user=U_B, org=ORG_A, invite=HASH_A) as conn:
+        with pytest.raises(asyncpg.InsufficientPrivilegeError):
+            await conn.execute(insert, uuid.uuid4(), ORG_A, U_B, "viewer")
+    # no token at all
+    async with as_app(app_db_url, user=U_B, org=ORG_A) as conn:
+        with pytest.raises(asyncpg.InsufficientPrivilegeError):
+            await conn.execute(insert, uuid.uuid4(), ORG_A, U_B, "viewer")
+    # their own token: allowed, but only for themselves
+    async with as_app(app_db_url, user=U_B, org=ORG_A, invite="hb") as conn:
+        await conn.execute(insert, uuid.uuid4(), ORG_A, U_B, "viewer")
+        with pytest.raises(asyncpg.InsufficientPrivilegeError):
+            await conn.execute(insert, uuid.uuid4(), ORG_A, U_A2, "viewer")
+
+
+async def test_a_new_org_can_be_bootstrapped_but_an_existing_one_cannot_be_joined_that_way(
+    seeded: None, app_db_url: str
+) -> None:
+    new_org = uuid.uuid4()
+    async with as_app(app_db_url, user=U_B, org=new_org) as conn:
+        await conn.execute(
+            "INSERT INTO organizations (id, name, slug) VALUES ($1,'n','n-1')", new_org
+        )
+        assert await count(conn, "organizations", f"id = '{new_org}'") == 1  # visible while empty
+        await conn.execute(
+            "INSERT INTO memberships (id, organization_id, user_id, role) VALUES ($1,$2,$3,'owner')",
+            uuid.uuid4(), new_org, U_B,
+        )  # fmt: skip
+    async with as_app(app_db_url, user=U_B, org=ORG_A) as conn:  # org A already has members
+        with pytest.raises(asyncpg.InsufficientPrivilegeError):
+            await conn.execute(
+                "INSERT INTO memberships (id, organization_id, user_id, role) VALUES ($1,$2,$3,'owner')",
+                uuid.uuid4(), ORG_A, U_B,
+            )  # fmt: skip
