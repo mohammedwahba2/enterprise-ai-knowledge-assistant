@@ -17,7 +17,6 @@ from app.modules.identity.deps import (
     limiter_dep,
     no_store,
     origin_guard,
-    revocations_dep,
 )
 from app.modules.identity.schemas import (
     ForgotPasswordRequest,
@@ -44,7 +43,6 @@ def service_dep(
         settings=settings,
         passwords=request.app.state.passwords,
         limiter=limiter_dep(request),
-        revocations=revocations_dep(request),
     )
 
 

@@ -5,7 +5,9 @@ import pytest
 from alembic import command
 from alembic.config import Config
 
-TABLES = {"users", "refresh_tokens", "password_resets"}
+TABLES = {
+    "users", "refresh_tokens", "password_resets", "organizations", "memberships", "invitations",
+}  # fmt: skip
 
 
 async def _tables(url: str) -> set[str]:

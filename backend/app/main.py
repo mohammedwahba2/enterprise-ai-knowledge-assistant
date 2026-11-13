@@ -14,8 +14,10 @@ from app.core.readiness import Check, build_checks
 from app.db.base import make_engine, make_sessionmaker
 from app.modules.identity.email import EmailSender, SmtpEmailSender
 from app.modules.identity.passwords import PasswordService
-from app.modules.identity.rate_limit import RateLimiter, SessionRevocations
+from app.modules.identity.rate_limit import RateLimiter
 from app.modules.identity.router import router as auth_router
+from app.modules.tenancy.router import invitations_router
+from app.modules.tenancy.router import router as orgs_router
 
 
 def create_app(
@@ -28,7 +30,8 @@ def create_app(
     configure_logging(settings.log_level, settings.log_json)
 
     engine = make_engine(settings.database_url)
-    redis = Redis.from_url(settings.redis_url)
+    # Short timeouts: a dead Redis must turn into a fast 503, not a hung request.
+    redis = Redis.from_url(settings.redis_url, socket_connect_timeout=2, socket_timeout=2)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
@@ -50,7 +53,6 @@ def create_app(
     app.state.sessionmaker = make_sessionmaker(engine)
     app.state.redis = redis
     app.state.limiter = RateLimiter(redis)
-    app.state.revocations = SessionRevocations(redis, settings.access_ttl_seconds + 60)
     app.state.passwords = PasswordService(
         memory_kib=settings.argon2_memory_kib,
         time_cost=settings.argon2_time_cost,
@@ -63,6 +65,8 @@ def create_app(
     app.include_router(health.router, prefix="/api")
     v1 = APIRouter(prefix="/api/v1")
     v1.include_router(auth_router)
+    v1.include_router(orgs_router)
+    v1.include_router(invitations_router)
     app.include_router(v1)
 
     structlog.get_logger("app").info("startup", env=settings.app_env)

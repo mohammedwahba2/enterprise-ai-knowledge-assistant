@@ -12,7 +12,7 @@ from app.core.errors import AppError
 from app.db.base import new_id
 from app.modules.identity.models import PasswordReset, RefreshToken, User
 from app.modules.identity.passwords import PasswordService, validate_password
-from app.modules.identity.rate_limit import RateLimiter, SessionRevocations, digest
+from app.modules.identity.rate_limit import RateLimiter, digest
 from app.modules.identity.tokens import (
     create_access_token,
     hash_token,
@@ -40,13 +40,11 @@ class IdentityService:
         settings: Settings,
         passwords: PasswordService,
         limiter: RateLimiter,
-        revocations: SessionRevocations,
     ) -> None:
         self.db = db
         self.s = settings
         self.passwords = passwords
         self.limiter = limiter
-        self.revocations = revocations
 
     # ---------- sessions ----------
 
@@ -94,24 +92,6 @@ class IdentityService:
             .values(revoked_at=datetime.now(UTC))
         )
         await self.db.commit()
-        await self.revocations.revoke(str(family_id))
-
-    async def _revoke_all_for_user(self, user_id: uuid.UUID) -> None:
-        families = (
-            await self.db.scalars(
-                select(RefreshToken.family_id)
-                .where(RefreshToken.user_id == user_id, RefreshToken.revoked_at.is_(None))
-                .distinct()
-            )
-        ).all()
-        await self.db.execute(
-            update(RefreshToken)
-            .where(RefreshToken.user_id == user_id, RefreshToken.revoked_at.is_(None))
-            .values(revoked_at=datetime.now(UTC))
-        )
-        await self.db.commit()
-        for fam in families:
-            await self.revocations.revoke(str(fam))
 
     # ---------- sign-up ----------
 
@@ -335,9 +315,15 @@ class IdentityService:
             .where(PasswordReset.user_id == user.id, PasswordReset.used_at.is_(None))
             .values(used_at=now)
         )
+        # A reset means the old credentials may be compromised: end every session of this user
+        # (all families, not just the newest) in the SAME transaction as the password change,
+        # so there is no moment where the new password exists but old sessions still live.
+        await self.db.execute(
+            update(RefreshToken)
+            .where(RefreshToken.user_id == user.id, RefreshToken.revoked_at.is_(None))
+            .values(revoked_at=now)
+        )
         await self.db.commit()
-        # A reset means the old credentials may be compromised: end every session.
-        await self._revoke_all_for_user(user.id)
         _log.info("auth.password_reset.completed", user_id=str(user.id))
 
 

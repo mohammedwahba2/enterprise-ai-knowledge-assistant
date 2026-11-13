@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from app.core.config import get_settings
 from app.db.base import Base, to_async_url
 from app.modules.identity import models  # noqa: F401  (register tables)
+from app.modules.tenancy import models as tenancy_models  # noqa: F401
 
 config = context.config
 target_metadata = Base.metadata

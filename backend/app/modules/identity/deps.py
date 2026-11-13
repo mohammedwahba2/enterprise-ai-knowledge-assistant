@@ -4,14 +4,15 @@ from typing import Annotated
 from urllib.parse import urlsplit
 
 from fastapi import Depends, Request, Response
+from sqlalchemy import exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
 from app.core.errors import AppError
 from app.db.base import get_session
 from app.modules.identity.cookies import ACCESS_COOKIE, CSRF_COOKIE, CSRF_HEADER
-from app.modules.identity.models import User
-from app.modules.identity.rate_limit import RateLimiter, SessionRevocations
+from app.modules.identity.models import RefreshToken, User
+from app.modules.identity.rate_limit import RateLimiter
 from app.modules.identity.tokens import TokenError, decode_access_token
 
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
@@ -28,10 +29,6 @@ SettingsDep = Annotated[Settings, Depends(settings_dep)]
 
 def limiter_dep(request: Request) -> RateLimiter:
     return request.app.state.limiter  # type: ignore[no-any-return]
-
-
-def revocations_dep(request: Request) -> SessionRevocations:
-    return request.app.state.revocations  # type: ignore[no-any-return]
 
 
 def client_ip(request: Request) -> str:
@@ -75,8 +72,14 @@ async def current_user(
     request: Request,
     session: Session,
     settings: SettingsDep,
-    revocations: Annotated[SessionRevocations, Depends(revocations_dep)],
 ) -> User:
+    """Authenticate from the access cookie.
+
+    Granting access requires the database to confirm the session is still alive: its refresh
+    family must contain a non-revoked, unexpired token. The database is the single source of
+    truth for revocation (sign-out, password reset, reuse detection, expiry), so an outage or
+    flush of any cache can never resurrect a revoked access token.
+    """
     token = request.cookies.get(ACCESS_COOKIE)
     unauthenticated = AppError(401, "UNAUTHENTICATED", "Authentication required")
     if not token:
@@ -85,7 +88,17 @@ async def current_user(
         claims = decode_access_token(settings, token)
     except TokenError:
         raise unauthenticated from None
-    if await revocations.is_revoked(str(claims.session_id)):
+    alive = await session.scalar(
+        select(
+            exists().where(
+                RefreshToken.family_id == claims.session_id,
+                RefreshToken.user_id == claims.user_id,
+                RefreshToken.revoked_at.is_(None),
+                RefreshToken.expires_at > func.now(),
+            )
+        )
+    )
+    if not alive:
         raise unauthenticated
     user = await session.get(User, claims.user_id)
     if user is None or not user.is_active:

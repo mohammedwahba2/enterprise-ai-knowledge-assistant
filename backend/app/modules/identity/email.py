@@ -59,3 +59,23 @@ def reset_email(locale: str, link: str, ttl_minutes: int) -> tuple[str, str]:
         f"{link}\n\n"
         "If you didn't request this, ignore this email; nothing will change.\n",
     )
+
+
+def invitation_email(
+    locale: str, org_name: str, inviter: str, link: str, ttl_days: int
+) -> tuple[str, str]:
+    if locale == "ar":
+        return (
+            f"دعوة للانضمام إلى {org_name}",
+            f"دعاك {inviter} للانضمام إلى مساحة العمل «{org_name}».\n\n"
+            f"افتح هذا الرابط لقبول الدعوة (صالح لمدة {ttl_days} أيام، ويُستخدم مرة واحدة):\n"
+            f"{link}\n\n"
+            "إذا لم تكن تتوقع هذه الدعوة فتجاهل هذه الرسالة.\n",
+        )
+    return (
+        f"You're invited to join {org_name}",
+        f'{inviter} invited you to join the workspace "{org_name}".\n\n'
+        f"Open this link to accept (valid for {ttl_days} days, single use):\n"
+        f"{link}\n\n"
+        "If you weren't expecting this invitation, ignore this email.\n",
+    )

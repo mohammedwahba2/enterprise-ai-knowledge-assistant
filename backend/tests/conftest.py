@@ -2,6 +2,7 @@ import os
 from collections.abc import AsyncIterator, Iterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 import pytest
 from alembic import command
@@ -18,6 +19,10 @@ from app.core.readiness import Check, CheckResult
 from app.db.base import to_async_url
 from app.main import create_app
 
+if TYPE_CHECKING:
+    from tests.tenancy_helpers import World
+
+APP_DB_PASSWORD = "app-role-test-password"
 PG_IMAGE = "pgvector/pgvector:pg16"
 REDIS_IMAGE = "redis:7-alpine"
 
@@ -37,9 +42,16 @@ def pg_url() -> Iterator[str]:
     with PostgresContainer(PG_IMAGE, username="test", password="test", dbname="test") as pg:
         url = pg.get_connection_url().replace("+psycopg2", "")
         os.environ["DATABASE_URL"] = url
+        os.environ["APP_DB_PASSWORD"] = APP_DB_PASSWORD
         cfg = Config("alembic.ini")
-        command.upgrade(cfg, "head")
+        command.upgrade(cfg, "head")  # runs as the owner/superuser and creates the app role
         yield url
+
+
+@pytest.fixture(scope="session")
+def app_db_url(pg_url: str) -> str:
+    """The API connects as `app_rw` (non-superuser, NOBYPASSRLS), never as the owner."""
+    return pg_url.replace("//test:test@", f"//app_rw:{APP_DB_PASSWORD}@")
 
 
 @pytest.fixture(scope="session")
@@ -71,11 +83,11 @@ def outbox() -> Outbox:
 
 
 @pytest.fixture
-def settings(pg_url: str, redis_url: str) -> Settings:
+def settings(app_db_url: str, redis_url: str) -> Settings:
     return Settings(
         app_env="test",
         log_json=True,
-        database_url=pg_url,
+        database_url=app_db_url,
         redis_url=redis_url,
         app_origin="http://localhost:8080",
         cookie_secure=False,
@@ -93,9 +105,15 @@ async def _clean_state(request: pytest.FixtureRequest) -> AsyncIterator[None]:
         yield
         return
     s: Settings = request.getfixturevalue("settings")
-    engine = create_async_engine(to_async_url(s.database_url))
+    owner_url: str = request.getfixturevalue("pg_url")  # TRUNCATE needs the owner
+    engine = create_async_engine(to_async_url(owner_url))
     async with engine.begin() as conn:
-        await conn.execute(text("TRUNCATE users, refresh_tokens, password_resets CASCADE"))
+        await conn.execute(
+            text(
+                "TRUNCATE users, refresh_tokens, password_resets, organizations, memberships, "
+                "invitations CASCADE"
+            )
+        )
     await engine.dispose()
     r = Redis.from_url(s.redis_url)
     await r.flushdb()
@@ -147,3 +165,14 @@ async def plain_client(plain_settings: Settings) -> AsyncIterator[AsyncClient]:
     finally:
         await app.state.engine.dispose()
         await app.state.redis.aclose()
+
+
+@pytest.fixture
+async def world(settings: Settings, outbox: Outbox) -> AsyncIterator["World"]:
+    from tests.tenancy_helpers import World
+
+    w = World(settings, outbox)
+    try:
+        yield w
+    finally:
+        await w.aclose()

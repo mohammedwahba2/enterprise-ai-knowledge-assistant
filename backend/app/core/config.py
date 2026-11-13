@@ -33,6 +33,12 @@ class Settings(BaseSettings):
     refresh_grace_seconds: int = Field(default=10, ge=0)
     reset_ttl_minutes: int = Field(default=30, ge=5)
 
+    # --- tenancy ---
+    max_owned_orgs_per_user: int = Field(default=10, ge=1)
+    invitation_ttl_days: int = Field(default=7, ge=1)
+    invitation_org_hourly_limit: int = 50
+    invitation_accept_ip_limit: int = 30
+
     # argon2id (OWASP-aligned defaults: 64 MiB, 3 iterations, 1 lane)
     argon2_memory_kib: int = Field(default=65536, ge=8)
     argon2_time_cost: int = Field(default=3, ge=1)
