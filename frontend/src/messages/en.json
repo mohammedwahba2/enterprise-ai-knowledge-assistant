@@ -77,6 +77,32 @@
       "TOO_LONG": "Use at most 128 characters.",
       "TOO_COMMON": "That password is too common.",
       "CONTAINS_EMAIL": "Don't include your email address in the password."
-    }
+    },
+    "SERVICE_UNAVAILABLE": "The service is temporarily unavailable. Please try again in a moment.",
+    "INVALID_INVITATION": "This invitation is invalid, has expired, or was sent to a different email address.",
+    "ORG_LIMIT_REACHED": "You already own the maximum number of workspaces.",
+    "FORBIDDEN": "You don't have permission to do that.",
+    "NOT_FOUND": "That doesn't exist, or you don't have access to it."
+  },
+  "Org": {
+    "switcherLabel": "Switch workspace",
+    "create": "Create workspace",
+    "notFoundTitle": "Workspace not found",
+    "notFoundBody": "It may not exist, or you may not have access to it.",
+    "backHome": "Go to your workspaces",
+    "current": "Current workspace"
+  },
+  "Workspace": {
+    "title": "Create your workspace",
+    "body": "A workspace keeps your team's documents and conversations together.",
+    "name": "Workspace name",
+    "submit": "Create workspace",
+    "cancel": "Cancel"
+  },
+  "Invite": {
+    "title": "Joining a workspace",
+    "accepting": "Accepting your invitation…",
+    "missing": "This invitation link is incomplete. Ask for a new one.",
+    "continue": "Go to workspace"
   }
 }

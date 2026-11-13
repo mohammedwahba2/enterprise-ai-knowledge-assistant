@@ -4,7 +4,8 @@ import { routing } from "./i18n/routing";
 
 const intl = createMiddleware(routing);
 
-const PUBLIC_PATHS = new Set(["/sign-in", "/sign-up", "/forgot-password", "/reset-password"]);
+// accept-invite is public so the fragment token survives; the page itself requires a session.
+const PUBLIC_PATHS = new Set(["/sign-in", "/sign-up", "/forgot-password", "/reset-password", "/accept-invite"]);
 const LOCALE_PATH = /^\/(en|ar)(\/.*)?$/;
 
 /**

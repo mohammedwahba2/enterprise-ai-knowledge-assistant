@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
-import { AppShell } from "@/components/AppShell";
+import { OrgsProvider } from "@/lib/orgs";
 import { RequireSession } from "@/components/RequireSession";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <RequireSession>
-      <AppShell>{children}</AppShell>
+      <OrgsProvider>{children}</OrgsProvider>
     </RequireSession>
   );
 }

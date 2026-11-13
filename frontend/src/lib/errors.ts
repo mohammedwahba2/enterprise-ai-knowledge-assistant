@@ -18,6 +18,11 @@ export function describeError(e: unknown): ErrorView {
     case "VALIDATION_ERROR":
     case "CSRF_FAILED":
     case "NETWORK":
+    case "SERVICE_UNAVAILABLE":
+    case "INVALID_INVITATION":
+    case "ORG_LIMIT_REACHED":
+    case "FORBIDDEN":
+    case "NOT_FOUND":
       return { key: e.code, reasons: [] };
     default:
       return { key: "UNKNOWN", reasons: [] };

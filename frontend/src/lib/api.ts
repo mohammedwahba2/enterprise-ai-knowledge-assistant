@@ -78,13 +78,33 @@ async function parse<T>(res: Response): Promise<T> {
 
 let inFlightRefresh: Promise<boolean> | null = null;
 
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/**
+ * REFRESH_RACE means a sibling request just rotated the token and its Set-Cookie may still be
+ * in flight to this browser. The shared cookie jar converges on the single new token; poll the
+ * session briefly instead of assuming it already has.
+ */
+async function waitForSiblingRotation(): Promise<boolean> {
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    await sleep(150 * attempt);
+    try {
+      await parse(await send("/auth/me"));
+      return true;
+    } catch (e) {
+      if (!(e instanceof ApiError && e.status === 401)) return false;
+    }
+  }
+  return false;
+}
+
 async function doRefresh(): Promise<boolean> {
   try {
     await parse(await send("/auth/refresh", { method: "POST" }));
     return true;
   } catch (e) {
-    // Another tab rotated the token a moment ago: our cookies are already fresh.
-    return e instanceof ApiError && e.code === "REFRESH_RACE";
+    if (e instanceof ApiError && e.code === "REFRESH_RACE") return waitForSiblingRotation();
+    return false;
   }
 }
 
@@ -128,6 +148,14 @@ export async function request<T>(
 }
 
 const json = (body: unknown): RequestInit => ({ method: "POST", body: JSON.stringify(body) });
+
+export type Org = { id: string; name: string; slug: string; role: "owner" | "admin" | "editor" | "member" | "viewer" };
+
+export const orgs = {
+  list: () => request<Org[]>("/orgs"),
+  create: (name: string) => request<Org>("/orgs", json({ name })),
+  acceptInvitation: (token: string) => request<Org>("/invitations/accept", json({ token })),
+};
 
 export const auth = {
   me: () => request<User>("/auth/me"),

@@ -6,6 +6,7 @@ if [[ -e .env ]]; then echo ".env already exists; leaving it untouched." >&2; ex
 rand() { LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c "$1"; }
 sed \
   -e "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(rand 32)/" \
+  -e "s/^APP_DB_PASSWORD=.*/APP_DB_PASSWORD=$(rand 32)/" \
   -e "s/^REDIS_PASSWORD=.*/REDIS_PASSWORD=$(rand 32)/" \
   -e "s/^JWT_SECRET=.*/JWT_SECRET=$(rand 64)/" \
   -e "s/^S3_ACCESS_KEY=.*/S3_ACCESS_KEY=$(rand 20)/" \

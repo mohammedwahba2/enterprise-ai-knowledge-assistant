@@ -33,7 +33,9 @@ services:
     command: ["alembic", "upgrade", "head"]
     restart: "no"
     environment:
+      # Owner credentials: only the migration uses them (it creates tables, policies and the app role).
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?run ./scripts/init-env.sh}
     depends_on:
       postgres: { condition: service_healthy }
 
@@ -60,7 +62,8 @@ services:
       APP_ENV: ${APP_ENV:-dev}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       LOG_JSON: ${LOG_JSON:-true}
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      # The API connects as the restricted role `app_rw` (NOT the owner), so RLS always applies.
+      DATABASE_URL: postgresql://app_rw:${APP_DB_PASSWORD:?run ./scripts/init-env.sh}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       OBJECT_STORE_HEALTH_URL: http://objectstore:9333/cluster/healthz
     depends_on:

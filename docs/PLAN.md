@@ -464,7 +464,9 @@ Design tokens (color, type incl. Arabic, spacing, radius, motion), component inv
 | Area | State |
 |---|---|
 | **Stage 1 — Foundations** (repo layout, Compose stack, FastAPI health/logging/errors, Next.js shell with EN/AR + RTL guards, tokens, CI) | **[implemented]**, see below |
-| Stages 2–12 | **[planned]** |
+| **Stage 2 — Identity** (sign-up/in/out, refresh rotation, password reset, locale preference, auth screens EN/AR) | **[implemented]**, awaiting your review; see §19 |
+| **Stage 3 — Tenancy & RBAC** (orgs, memberships, invitations, policy module, RLS, org switcher, isolation suites) | **[implemented]**, awaiting your review; see §20 |
+| Stages 4–12 | **[planned]** |
 | Plan, decision log, design audit | **[done]** |
 | Three exploratory mockups + **final refined mockup** (throwaway HTML, synthetic content) | **[done]**, not product code; final one awaits your approval |
 | Hardware check of the dev machine | **[done]**: Apple Silicon, 16 GB, 10 cores |
@@ -514,3 +516,113 @@ Open (small, none blocking): dark mode timing (proposal: post-v1); project/repo 
 | Run **gitleaks** locally and verify the **GitHub Actions workflow** (backend, frontend, secrets-scan, compose jobs) | Before the **first push** |
 | Verify **authenticated SeaweedFS S3** upload/download round trip (readiness currently checks only the master health endpoint) | **Stage 4** (storage) |
 | Python **3.11 (local) vs 3.12 (container/CI)**: run the test suite on both and fix incompatibilities | Each stage; CI runs 3.12, local runs 3.11; add a 3.11 CI job if they diverge |
+
+---
+
+## 19. Stage 2 report: Identity (implemented, awaiting review)
+
+**Built (backend):** SQLAlchemy 2 async + Alembic (migration `0001`, with a Compose one-shot `migrate` service); tables `users`, `refresh_tokens`, `password_resets`; argon2id (64 MiB, t=3, p=1, NFKC-normalised, off the event loop, rehash on sign-in); password policy (10-128 chars, small common list, no email local-part); HS256 access JWT (15 min; pinned algorithm; `iss/aud/sub/sid/jti/typ` required); opaque 256-bit refresh and reset tokens stored only as SHA-256; refresh rotation with family-wide revocation on reuse, a 10 s benign-race grace window and a 30-day absolute family cap; session liveness checked against the database on every request (see §19.1), so sign-out/reset kill still-valid access tokens immediately; Redis rate limits (sign-in per ip+email and per ip, sign-up per ip, reset per ip and per email); double-submit CSRF + Origin/Sec-Fetch-Site checks; `Cache-Control: no-store` on auth responses; SMTP email sender (Mailpit in the `dev` profile); reset link carries the token in the URL fragment; prod config guards (refuses default JWT secret, non-secure cookies, non-https origin).
+**Endpoints:** `POST /api/v1/auth/{sign-up,sign-in,refresh,sign-out,password/forgot,password/reset}`, `GET|PATCH /api/v1/auth/me`.
+**Built (frontend):** API client with CSRF header, problem+json mapping, single-flight refresh (`navigator.locks`); sign-in, sign-up, forgot, reset pages (EN/AR, RTL); session provider and route gate; user menu with sign-out; locale preference saved on switch; proxy redirect using a non-sensitive `ka_session` hint cookie.
+
+**Verification:**
+- Backend: ruff, mypy strict, **88 tests** on real Postgres+pgvector and Redis (testcontainers), including migration up/down/up.
+- Frontend: eslint, stylelint, tsc, **41 tests**, `next build` (inside the Docker build).
+- Compose: all services healthy including `migrate` (exit 0); full flow exercised in the browser in Arabic through Caddy: sign-up (weak password rejected, then accepted), sign-out, wrong-password error, sign-in, forgot password, email captured in Mailpit (Arabic, token in fragment), fragment scrubbed from the address bar, reset, old password 401 / new password 200, reset token reuse 400.
+- Bugs found by the tests/browser run and fixed: `replaced_by` was never set on rotation; lazy-load crash (500) in the reuse-detection path; request ID missing on 500 responses; missing CSS in the first Docker build; sign-out marked the UI signed-out even when the request failed.
+
+**Decisions and trade-offs (please review):**
+- **Sign-up reveals taken emails (409).** Accepted because email verification is deferred; mitigated by per-IP rate limiting. Sign-in, forgot-password and reset do not reveal existence.
+- **No email verification, change-password, MFA or "sign out everywhere" button** (not in the stage 2 scope); `email_verified_at` exists unused.
+- **Access cookie lifetime vs revocation:** access tokens are signed, but every request also confirms in the database that the session's refresh family still has a live token (superseded by §19.1; Redis is no longer involved in authentication).
+- **Per-IP sign-in lockout** (not per-account) so a stranger cannot lock the owner out; trade-off: a distributed guesser is limited per IP only. `X-Forwarded-For` is trusted because only Caddy can reach the API.
+- **Zod not used** for forms: server validation is authoritative and the client only checks length; revisit if forms grow.
+- **Auth screens were not in the approved mockup**; they were designed from the approved tokens (paper, hairline fields, serif titles, ink primary button). Please review them as new design.
+- **Digits:** error messages pass pre-formatted strings, so Arabic UI shows Western digits (D11).
+- Database role is still the Postgres owner; the non-superuser app role and RLS arrive in stage 3.
+
+**Still unverified / open:**
+- Python 3.12: the container image (3.12) runs migrations and serves traffic, but the **test suite was only run on 3.11**; CI will run it on 3.12 (not yet exercised).
+- GitHub Actions, gitleaks, pre-commit: written, not run (no remote).
+- No Playwright E2E yet (planned stage 9); browser verification above was manual.
+- Real SMTP delivery (STARTTLS/auth) is untested; only Mailpit.
+- Rate-limit behaviour behind multiple API replicas is untested (single replica).
+- Tablet-width auth screens not screenshotted; desktop (EN/AR) and mobile (AR) were.
+- Nothing is committed.
+
+### 19.1 Review round on stage 2 (concurrency, Redis failure, reset revocation, auth screens)
+
+**Changes made in response to the review**
+- **Redis is no longer part of authentication.** Previously, revocation lived in a Redis set. Testing showed two problems: with Redis down the API raised unhandled errors (500s), and a revocation whose Redis write was lost would let a revoked access token live out its 15 minutes. Now the **database is the single source of truth**: `current_user` grants access only if the token's session (refresh family) still has a non-revoked, unexpired refresh token (one indexed query; the user row is loaded anyway). Sign-out, password reset, reuse detection and expiry all work by updating `refresh_tokens`. The Redis revocation set was removed.
+- **Rate limiting fails closed.** Every `RateLimiter` operation maps Redis failures to `503 SERVICE_UNAVAILABLE` with `Retry-After: 5` (short 2 s Redis timeouts), so sign-in, sign-up, forgot and reset are refused rather than running without brute-force protection. Verified: with Redis stopped, correct credentials get 503 and no cookies; an existing session still authenticates; sign-out still succeeds and revokes.
+- **Password reset revocation is atomic.** The password change, token consumption and revocation of **all** the user's refresh families happen in one transaction (previously revocation ran after the commit).
+- **Client convergence after `REFRESH_RACE`:** the client now polls `/auth/me` (4 attempts, 150-600 ms back-off) until the sibling's cookies land, then retries; it gives up cleanly rather than looping.
+- UI maps `SERVICE_UNAVAILABLE` to a localized message (EN/AR).
+
+**Concurrent refresh, exactly** (tested with 8 simultaneous requests carrying the same token against real Postgres): the refresh handler locks the presented token row (`SELECT ... FOR UPDATE`), so concurrent requests serialize. The first rotates (old token revoked, `replaced_by` set, one child token created). Each later request sees the old token revoked and rotated less than 10 s ago and returns `401 REFRESH_RACE` **without minting anything and without punishing the family**. Therefore there is never more than one live descendant: exactly one 200, seven `REFRESH_RACE`, two rows in the table, one live. Tabs converge through the shared cookie jar: in browsers the `navigator.locks` lock serializes tabs, and a tab that gets the lock first calls `/auth/me`, which already succeeds with the sibling's fresh cookies, so no second rotation happens; without locks (or non-browser clients) the `REFRESH_RACE` path plus the polling above converges on the single child. Trade-off: replaying a stolen token within 10 s of the legitimate rotation yields nothing but also does not trigger family revocation; after the window any replay revokes the whole family.
+
+**Reset revocation** (tested with four sessions across four families, one rotated three times, plus two outstanding reset tokens and a bystander user): all four families' refresh tokens are revoked, every old access token returns 401, every old refresh token returns 401, all reset tokens are spent, and the other user's session is untouched.
+
+**Auth screens:** 24 captures (4 screens x EN/AR x desktop 1280x800 / tablet 820x1180 / mobile 390x844) in `docs/design/auth-screens/` (`index.html` is a self-contained review page; `capture.cjs` regenerates them). Mobile and tablet captures use real DevTools device metrics because headless Chrome clamps window width to 500 px.
+
+**Verification now:** backend **96 tests** (ruff, mypy strict clean), frontend **42 tests** (eslint, stylelint, tsc clean).
+
+### 19.2 Outstanding verification items (stages 1 and 2), kept open
+| Item | Status | When |
+|---|---|---|
+| gitleaks run locally; GitHub Actions workflow (backend, frontend, secrets-scan, compose jobs) verified | not done (no remote, gitleaks not installed) | before the first push |
+| Authenticated SeaweedFS S3 upload/download round trip | not done (readiness checks master health only) | stage 4 |
+| Python 3.12: run the test suite (container image runs on 3.12; tests only run on 3.11 locally) | not done | CI before first push; each stage |
+| Real SMTP (STARTTLS/auth) delivery | not done (Mailpit only) | before any deployment |
+| Rate limits and refresh locking with multiple API replicas | not done | stage 11 (performance/hardening) |
+| Playwright end-to-end tests for the auth flows | not done (manual browser verification only) | stage 9 |
+| Tablet-width live-browser review of the signed-in shell | not done (auth screens covered by the 24 captures) | stage 9/10 |
+| Nothing committed | by instruction | until you ask |
+
+---
+
+## 20. Stage 3 report: Tenancy & RBAC (implemented, awaiting review)
+
+### 20.1 What was built
+**Data model** (migration `0002`): `organizations` (name, auto-generated slug `name-xxxxxx`, settings jsonb), `memberships` (unique per org+user, role check), `invitations` (token stored as SHA-256 only, role limited to admin/editor/member/viewer, one pending invitation per org+email). Differences from §4: no `memberships.status` column (it would be dead code until suspension exists); `users` stays global identity data without RLS.
+**Roles and policy:** owner > admin > editor > member > viewer in one pure module (`app/modules/access/policies.py`) with an explicit action table, `require()` (403 `FORBIDDEN`), `check_role_change()`, `check_removal()`. Rules: only owners touch or grant owner; admins manage roles up to admin; nobody raises their own role; anyone may leave; the last owner can neither leave nor be demoted (enforced under a row lock on the organization, tested with two simultaneous demotions); member emails are visible to admins and owners only; owners are promoted, never invited.
+**API:** `POST/GET /orgs`, `GET/PATCH/DELETE /orgs/{org_id}`, `GET /orgs/{org_id}/members`, `PATCH/DELETE /orgs/{org_id}/members/{member_id}`, `GET/POST /orgs/{org_id}/invitations`, `DELETE /orgs/{org_id}/invitations/{invitation_id}`, `POST /invitations/accept`. Deviation from §8: accept takes the token in the request **body**, not the URL path, so it never reaches access logs. Per-user cap of 10 owned workspaces; invitation rate limits (per org, per IP); invitation email (EN/AR) with the token in the URL fragment.
+**Frontend:** workspace routes `/{locale}/{org-slug}`; create-workspace page (first sign-in); org switcher in the rail (accessible menu, per-user remembered last workspace); accept-invite page (parks the fragment token in `sessionStorage` across the sign-in detour); "workspace not found" view identical for nonexistent and foreign workspaces. Members/roles management UI is **not** built in this stage (it is stage 11); roles and invitations are API-only for now.
+
+### 20.2 Tenant isolation: three independent layers
+1. **Resolution:** the tenant is derived from the verified membership of the authenticated user, never from client input; a non-member and a nonexistent org get the **same 404** (identical bodies, asserted).
+2. **PostgreSQL RLS, independent of the URL:** the API connects as `app_rw` (non-superuser, `NOBYPASSRLS`, owns no tables, cannot create objects or `SET ROLE`). Policies read transaction-local settings published on every transaction begin (`app.current_user`, `app.current_org`, `app.invite_hash`); no scope means every tenant table reads as empty. Crucially the policies also require the **authenticated user's membership** (SECURITY DEFINER helpers `app_is_member`, `app_org_has_members`, `app_invite_valid`), so naming an organization in the scope without belonging to it grants nothing at the database level. A user may read their own memberships across orgs (to list workspaces). Joining uses a per-transaction token-hash capability that must match an unexpired invitation addressed to the user's email; a brand-new organization can be bootstrapped only while it has no members.
+3. **Explicit filters** in every query (`organization_id = ...`), including ID-addressed lookups (members, invitations).
+**Scope plumbing guarantees:** the scope is re-published on every new transaction (tested across commits and pooled connections); `bind_scope()` refuses a session that already began a transaction, and handlers use their own session rather than the one shared with authentication (a first version silently saw empty results because of that sharing: caught by the tests).
+**Known limits (documented, not hidden):** policies cannot express roles (members vs admins); roles are enforced in the application layer and tested there. RLS is enabled but **not forced** (the table owner used by migrations is exempt; forcing would also bind the definer helpers); the guarantee relies on the API never using the owner credentials, which the Compose setup and a catalog test enforce. `users` has no RLS: member listings join it, constrained by organization.
+
+### 20.3 Tests (159 backend, 52 frontend; all green)
+- **Policy matrix** (`test_policies.py`): hand-written role x action matrix plus role-change and removal rules.
+- **Database level** (`test_rls.py`, raw SQL as `app_rw`): the role is not superuser/bypassrls and cannot DDL; every table with `organization_id` has RLS enabled and policies for all four commands (fails if a future table forgets); no scope reads nothing; another org's rows are invisible, cannot be updated/deleted (0 rows) or inserted/moved (error); a **spoofed org in the scope without membership** reads and changes nothing; invitation joins require the matching email and token; empty-org bootstrap only; scope never leaks through a single pooled connection and survives mid-request commits.
+- **API matrix generated from the live OpenAPI schema** (`test_tenant_isolation_matrix.py`): every `/orgs/{org_id}/...` route is called as an outsider with the victim's real org id, with the victim's real member/invitation ids, with random ids: always the identical 404; the victim's data is unchanged afterwards; unauthenticated callers get 401/403; a new route that nobody classified (org-scoped or explicitly allow-listed with a reason) or a body-bearing route without a sample body fails the suite; the owner really reaches every GET route (guards against a vacuous pass).
+- **Hand-written IDOR/abuse** (`test_tenant_idor.py`, `test_tenancy_api.py`): member and invitation ids from another org through your own org path; 25 guessed UUIDs; mass-assignment of `organization_id`/`id`/`slug`; invitation tokens replayed by strangers, by another org's owner, tampered, mismatched email (no membership created, invitation not consumed), reused, revoked, replaced, expired; an existing member cannot be escalated by an old invitation; removed members lose access immediately with a valid session; role-escalation attempts; last-owner invariants incl. a concurrent race.
+- **Mutation checks** (in a scratch copy; nothing in the project was mutated): (M1) removing the explicit org filter on member lookup: all API/IDOR/matrix tests still pass because RLS holds; (M2) disabling RLS: the API suites still pass (layer 1/3 hold) and 17 DB-level RLS tests fail; (M3) removing the application membership check entirely: the matrix suite fails, and a probe showed the outsider received **no victim data and changed nothing** (org GET/PATCH 404, member and invitation lists empty, invitation creation rejected by the database, DELETE affected 0 rows).
+
+### 20.4 Live verification (Docker Compose, through Caddy)
+API running as `app_rw` (confirmed), migration run as owner; in the browser (Arabic): sign-in with no workspace redirects to create-workspace, creating a workspace with an Arabic name lands in it (slug `workspace-xxxxxx`); curl: an outsider gets 404 on GET/members/invitations/PATCH/DELETE of another org; invitation created, email captured (Arabic subject, fragment link), accepted by the invited user, who then sees only member names (no emails) as a viewer and gets 403 when trying to invite; switcher menu rendered (English, desktop). Found and fixed: the remembered last workspace was shared across accounts in one browser; it is now stored per user.
+
+### 20.5 Decisions and trade-offs for your review
+- Slugs are random-suffixed and immutable (no slug-existence oracle, no rename flow yet).
+- A workspace owner can delete the workspace; storage cleanup of its future documents must be handled in stage 4.
+- Invitation acceptance is bound to the invited **email address** of the signed-in account; since email verification is still deferred, possession of the emailed token is the real proof (as with password reset).
+- Unauthenticated state-changing calls to org routes get 403 `CSRF_FAILED` rather than 401 (the CSRF guard runs first); nothing is processed either way.
+- The 10-second refresh **grace-window trade-off** is unchanged and still documented in §19.1: replaying a stolen token within 10 s of the legitimate rotation yields nothing but also does not trigger family revocation; afterwards any replay revokes the whole family.
+- Audit events are logged (structured `org.*`, `member.*`, `invitation.*`) but the append-only `audit_events` table is still stage 11.
+
+### 20.6 Outstanding verification items (carried forward, still open)
+| Item | Status | When |
+|---|---|---|
+| gitleaks locally; GitHub Actions workflow (backend, frontend, secrets-scan, compose) verified | not done (no remote, gitleaks not installed); the CI workflow does not yet provide Docker-in-CI settings for the testcontainers-based backend tests, to be confirmed on first run | before the first push |
+| Authenticated SeaweedFS S3 upload/download round trip | not done | stage 4 |
+| Python 3.12 test run (container image runs 3.12; tests only on 3.11 locally) | not done | CI before first push |
+| Real SMTP (STARTTLS/auth) delivery | not done (Mailpit only) | before any deployment |
+| Rate limits, refresh locking, and RLS helper performance with multiple replicas / large tables | not done | stage 11 |
+| Playwright end-to-end tests (auth, workspace creation, invitations, switcher) | not done (manual browser verification only) | stage 9 |
+| Tablet/mobile live review of the signed-in shell with the new org switcher | not done (desktop EN/AR verified; auth screens covered in §19.1) | stage 9/10 |
+| Deleting a workspace with documents (storage cleanup) | n/a until documents exist | stage 4 |
+| Nothing committed | by instruction | until you ask |

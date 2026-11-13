@@ -91,9 +91,43 @@ describe("refresh-and-retry", () => {
     await expect(request("/me")).rejects.toMatchObject({ code: "UNAUTHENTICATED" });
     expect(calls).toHaveLength(2);
   });
-  it("treats REFRESH_RACE as success (a sibling tab just rotated)", async () => {
-    queue.push(problem(401, "UNAUTHENTICATED"), problem(401, "REFRESH_RACE"), ok({ ok: 1 }));
-    await expect(request("/me")).resolves.toEqual({ ok: 1 });
+  it("REFRESH_RACE: waits for the sibling's cookies, then converges and retries", async () => {
+    vi.useFakeTimers();
+    try {
+      // original 401, refresh -> race, /me still stale once, then fresh, then the retried call
+      queue.push(
+        problem(401, "UNAUTHENTICATED"),
+        problem(401, "REFRESH_RACE"),
+        problem(401, "UNAUTHENTICATED"),
+        ok({ id: "u" }),
+        ok({ ok: 1 }),
+      );
+      const result = request("/data");
+      await vi.runAllTimersAsync();
+      await expect(result).resolves.toEqual({ ok: 1 });
+      expect(calls.map((c) => c.url)).toEqual([
+        "/api/v1/data",
+        "/api/v1/auth/refresh",
+        "/api/v1/auth/me",
+        "/api/v1/auth/me",
+        "/api/v1/data",
+      ]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+  it("REFRESH_RACE: gives up (no endless polling) if the session never becomes valid", async () => {
+    vi.useFakeTimers();
+    try {
+      queue.push(problem(401, "UNAUTHENTICATED"), problem(401, "REFRESH_RACE"));
+      for (let i = 0; i < 4; i++) queue.push(problem(401, "UNAUTHENTICATED"));
+      const result = request("/data").catch((e) => e);
+      await vi.runAllTimersAsync();
+      expect(await result).toMatchObject({ code: "UNAUTHENTICATED" });
+      expect(calls.filter((c) => c.url.endsWith("/auth/me"))).toHaveLength(4);
+    } finally {
+      vi.useRealTimers();
+    }
   });
   it("coalesces concurrent 401s into one refresh", async () => {
     // two failing calls, one refresh, two retries
