@@ -396,11 +396,21 @@ async def test_joining_through_an_invitation_requires_the_matching_email_and_tok
     async with as_app(app_db_url, user=U_B, org=ORG_A) as conn:
         with pytest.raises(asyncpg.InsufficientPrivilegeError):
             await conn.execute(insert, uuid.uuid4(), ORG_A, U_B, "viewer")
-    # their own token: allowed, but only for themselves
+    # their own token: allowed
     async with as_app(app_db_url, user=U_B, org=ORG_A, invite="hb") as conn:
         await conn.execute(insert, uuid.uuid4(), ORG_A, U_B, "viewer")
+        assert (
+            await count(conn, "memberships", f"organization_id = '{ORG_A}' AND user_id = '{U_B}'")
+            == 1
+        )
+    # the same token cannot be used to enrol a DIFFERENT user (token is bound to the invitee's email)
+    async with as_app(app_db_url, user=U_A2, org=ORG_A, invite="hb") as conn:
+        await conn.execute("DELETE FROM memberships WHERE user_id = $1", U_A2)  # leave org A first
+    async with as_app(app_db_url, user=U_B, org=ORG_B, invite="hb") as conn:
         with pytest.raises(asyncpg.InsufficientPrivilegeError):
-            await conn.execute(insert, uuid.uuid4(), ORG_A, U_A2, "viewer")
+            await conn.execute(
+                insert, uuid.uuid4(), ORG_A, U_B, "viewer"
+            )  # scope org != invitation org
 
 
 async def test_a_new_org_can_be_bootstrapped_but_an_existing_one_cannot_be_joined_that_way(
