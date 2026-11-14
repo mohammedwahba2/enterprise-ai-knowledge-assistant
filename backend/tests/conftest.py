@@ -19,6 +19,7 @@ from app.core.config import Settings
 from app.core.readiness import Check, CheckResult
 from app.db.base import to_async_url
 from app.main import create_app
+from tests.fake_chat import FakeChat
 from tests.fake_embedder import FakeEmbedder
 
 if TYPE_CHECKING:
@@ -199,12 +200,14 @@ async def make_client(
     base_url: str = "http://localhost:8080",
     enqueue: object | None = None,
     embedder: object | None = None,
+    chat: object | None = None,
 ) -> AsyncIterator[AsyncClient]:
     """A browser-like client (cookie jar, same-origin Origin header) with clean teardown."""
     app = create_app(
         settings, checks=[], email_sender=email_sender,  # type: ignore[arg-type]
         enqueue=enqueue or Enqueued(),  # type: ignore[arg-type]
         embedder=embedder or FakeEmbedder(),  # type: ignore[arg-type]
+        chat=chat or FakeChat(),  # type: ignore[arg-type]
     )  # fmt: skip
     transport = ASGITransport(app=app, client=(ip, 5000))
     try:

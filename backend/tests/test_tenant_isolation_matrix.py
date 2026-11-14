@@ -39,6 +39,10 @@ BODIES: dict[tuple[str, str], dict[str, Any]] = {
     ("put", f"{ORG}/collections/{{collection_id}}/members"): {"user_ids": []},
     ("post", f"{ORG}/search"): {"query": "annual leave"},
     ("post", f"{ORG}/search/debug"): {"query": "annual leave"},
+    ("post", f"{ORG}/conversations"): {"title": "planted"},
+    ("post", f"{ORG}/conversations/{{conversation_id}}/messages"): {
+        "content": "what is in the board minutes?"
+    },
 }
 MULTIPART = {
     ("post", f"{ORG}/documents")
@@ -49,7 +53,10 @@ NO_BODY = {
 STREAMING = {
     f"{ORG}/documents/events"
 }  # open-ended responses: owner access is checked live instead
-PARAMS = {"org_id", "member_id", "invitation_id", "collection_id", "document_id", "page_number"}
+PARAMS = {
+    "org_id", "member_id", "invitation_id", "collection_id", "document_id", "page_number",
+    "conversation_id",
+}  # fmt: skip
 
 
 def _routes() -> list[tuple[str, str]]:
@@ -152,6 +159,9 @@ async def _victim(world: World) -> tuple[Person, dict[str, str]]:
         "collection_id": collection_id,
         "document_id": upload.json()[0]["document"]["id"],
         "page_number": "1",
+        "conversation_id": (
+            await victim.post(f"/orgs/{oid}/conversations", {"title": "Victim chat"})
+        ).json()["id"],
     }
     return victim, ids
 

@@ -54,6 +54,8 @@ select = ["E", "F", "I", "B", "UP", "S", "ASYNC", "SIM", "RUF"]
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101", "S105", "S106", "S107", "E501", "RUF001", "RUF003", "RUF005", "RUF007", "F811", "S608", "ASYNC109"]
 "migrations/*" = ["E501", "I001", "S608"]
+"app/modules/chat/prompt.py" = ["E501"]  # the system prompt is prose; wrapping it would hurt readability
+"evals/*" = ["E501", "RUF001", "RUF003", "S101", "S608"]
 
 [tool.mypy]
 strict = true

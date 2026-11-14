@@ -63,6 +63,7 @@ class World:
     worker_db_url: str = ""
     enqueued: object | None = None
     embedder: object | None = None  # the API's query embedder (default: the fake)
+    chat: object | None = None  # the API's chat model (default: a silent fake)
     stack: AsyncExitStack = field(default_factory=AsyncExitStack)
 
     async def person(self, name: str, email: str | None = None) -> Person:
@@ -74,6 +75,7 @@ class World:
                 ip=f"203.0.113.{next(_ip)}",
                 enqueue=self.enqueued,
                 embedder=self.embedder,
+                chat=self.chat,
             )
         )
         r = await client.post(

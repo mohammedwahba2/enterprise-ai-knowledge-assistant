@@ -14,7 +14,11 @@ from app.core.readiness import Check, build_checks
 from app.db.base import make_engine, make_sessionmaker
 from app.infrastructure.embeddings.base import Embedder
 from app.infrastructure.embeddings.ollama import OllamaEmbedder
+from app.infrastructure.llm.base import ChatModel
+from app.infrastructure.llm.ollama import OllamaChat
 from app.infrastructure.storage.s3 import ObjectStore, S3ObjectStore
+from app.modules.chat.queue import GenerationQueue
+from app.modules.chat.router import router as chat_router
 from app.modules.documents.router import router as documents_router
 from app.modules.identity.email import EmailSender, SmtpEmailSender
 from app.modules.identity.passwords import PasswordService
@@ -34,6 +38,7 @@ def create_app(
     store: ObjectStore | None = None,
     enqueue: Enqueue | None = None,
     embedder: Embedder | None = None,
+    chat: ChatModel | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
     configure_logging(settings.log_level, settings.log_json)
@@ -83,6 +88,17 @@ def create_app(
         settings.query_embedder_timeout_seconds,
         keep_alive=settings.embedder_keep_alive,
     )
+    app.state.chat = chat or OllamaChat(
+        settings.llm_url,
+        settings.llm_model,
+        num_ctx=settings.llm_num_ctx,
+        temperature=settings.llm_temperature,
+        timeout=settings.llm_timeout_seconds,
+        keep_alive=settings.llm_keep_alive,
+    )
+    app.state.generation_queue = GenerationQueue(
+        settings.llm_max_concurrency, settings.llm_queue_limit
+    )
 
     app.add_middleware(RequestContextMiddleware)
     install_error_handlers(app)
@@ -92,6 +108,7 @@ def create_app(
     v1.include_router(orgs_router)
     v1.include_router(documents_router)
     v1.include_router(retrieval_router)
+    v1.include_router(chat_router)
     v1.include_router(invitations_router)
     app.include_router(v1)
 

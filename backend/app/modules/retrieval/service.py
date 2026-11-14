@@ -152,6 +152,12 @@ async def _run(
 ) -> _Outcome:
     policies.require(ctx.role, action)
     await _rate_limit(limiter, ctx, settings)
+    return await _core(ctx, embedder, settings, request)
+
+
+async def _core(
+    ctx: TenantCtx, embedder: Embedder, settings: Settings, request: SearchRequest
+) -> _Outcome:
     started = time.perf_counter()
     scope = _scope(ctx, request.collection_ids)
     n = settings.retrieval_candidates
@@ -269,3 +275,66 @@ async def search_debug(
             "total": round((time.perf_counter() - out.started) * 1000, 1),
         },
     )
+
+
+@dataclass(frozen=True)
+class RankedChunk:
+    """One retrieved passage with everything the answer pipeline needs (and nothing hidden)."""
+
+    chunk_id: uuid.UUID
+    document_id: uuid.UUID
+    collection_id: uuid.UUID
+    document_title: str
+    collection_name: str
+    page_start: int
+    page_end: int
+    heading_path: str
+    content: str
+    similarity: float | None
+    fts_score: float | None
+    vector_rank: int | None
+    fts_rank: int | None
+    fused: float
+
+
+@dataclass(frozen=True)
+class Evidence:
+    chunks: list[RankedChunk]
+    degraded: bool
+
+
+async def retrieve_evidence(
+    ctx: TenantCtx,
+    embedder: Embedder,
+    settings: Settings,
+    request: SearchRequest,
+) -> Evidence:
+    """Permission-prefiltered evidence for answering (same filters as search; no search rate limit,
+    the caller applies its own)."""
+    policies.require(ctx.role, Action.DOCUMENT_VIEW)
+    out = await _core(ctx, embedder, settings, request)
+    vector_rank = {cid: i for i, (cid, _) in enumerate(out.vector_hits, start=1)}
+    fts_rank = {cid: i for i, (cid, _) in enumerate(out.fts_hits, start=1)}
+    similarity = dict(out.vector_hits)
+    fts_score = dict(out.fts_hits)
+    chunks = [
+        RankedChunk(
+            chunk_id=cid,
+            document_id=out.details[cid][0].document_id,
+            collection_id=out.details[cid][0].collection_id,
+            document_title=out.details[cid][1],
+            collection_name=out.details[cid][2],
+            page_start=out.details[cid][0].page_start,
+            page_end=out.details[cid][0].page_end,
+            heading_path=out.details[cid][0].heading_path,
+            content=out.details[cid][0].content,
+            similarity=similarity.get(cid),
+            fts_score=fts_score.get(cid),
+            vector_rank=vector_rank.get(cid),
+            fts_rank=fts_rank.get(cid),
+            fused=score,
+        )
+        for cid, score in out.fused
+        if cid in out.details
+    ]
+    return Evidence(chunks=chunks, degraded=out.degraded)

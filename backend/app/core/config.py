@@ -75,6 +75,28 @@ class Settings(BaseSettings):
     hnsw_max_scan: int = Field(default=20000, ge=1000)
     search_rate_per_minute: int = Field(default=60, ge=1)
 
+    # --- grounded generation (stage 8) ---
+    llm_url: str = "http://localhost:11434"
+    llm_model: str = "qwen3:8b"
+    llm_num_ctx: int = Field(default=8192, ge=2048)
+    llm_max_output_tokens: int = Field(default=600, ge=64, le=4096)
+    llm_temperature: float = Field(default=0.1, ge=0.0, le=1.0)
+    llm_timeout_seconds: float = Field(default=120.0, ge=5.0)
+    llm_keep_alive: str = "30m"
+    # One generation at a time on the reference machine; others wait (bounded) and see "queued".
+    llm_max_concurrency: int = Field(default=1, ge=1, le=8)
+    llm_queue_limit: int = Field(default=4, ge=0, le=50)
+    chat_rate_per_minute: int = Field(default=20, ge=1)
+    answer_context_chunks: int = Field(default=6, ge=1, le=12)
+    # Retrieval gate: refuse WITHOUT calling the model below these evidence levels. Calibrated on
+    # the calibration split and verified on the test split (docs/eval/stage8-answers.md).
+    gate_min_similarity: float = Field(default=0.45, ge=0.0, le=1.0)
+    gate_min_fts_score: float = Field(default=1.0, ge=0.0)  # used only when vectors are unavailable
+    # Citation verification: a cited sentence is supported when its numbers all occur in the cited
+    # passage AND (it shares enough words with it OR is semantically close).
+    verify_min_lexical: float = Field(default=0.4, ge=0.0, le=1.0)
+    verify_min_similarity: float = Field(default=0.5, ge=0.0, le=1.0)
+
     # --- documents ---
     max_upload_bytes: int = Field(default=50 * 1024 * 1024, ge=1024)
     max_files_per_upload: int = Field(default=10, ge=1, le=50)
