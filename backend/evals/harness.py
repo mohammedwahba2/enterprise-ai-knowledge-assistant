@@ -181,3 +181,57 @@ _TOKEN = re.compile(r"\w+", re.UNICODE)
 def query_tokens(text: str) -> list[str]:
     """Normalized, tsquery-safe words of a question (the same normalization as the index)."""
     return _TOKEN.findall(search_normalize(text))
+
+
+SUMMARY_COLUMNS = (
+    ("overall R@5", None, 5),
+    ("ar R@5", "ar_factoid", 5),
+    ("en R@5", "en_factoid", 5),
+    ("ar→en R@5", "cross_ar_to_en", 5),
+    ("en→ar R@5", "cross_en_to_ar", 5),
+    ("id R@5", "identifier", 5),
+    ("para R@5", "paraphrase", 5),
+    ("typo R@5", "typo_diacritic", 5),
+    ("multi R@5", "multi_passage", 5),
+)
+
+
+def render_summary(reports: Sequence[Report]) -> str:
+    """One row per configuration: the matrix a decision is made from."""
+    head = "| configuration | MRR@10 | nDCG@10 | " + " | ".join(c[0] for c in SUMMARY_COLUMNS)
+    head += " | digit consistency |\n|" + "---|" * (len(SUMMARY_COLUMNS) + 4) + "\n"
+    rows = []
+    for r in reports:
+        cells = []
+        for _, category, k in SUMMARY_COLUMNS:
+            row = r.overall if category is None else r.by_category.get(category)
+            cells.append("n/a" if row is None else f"{row.recall[k]:.2f}")
+        digit = "n/a" if r.digit_consistency is None else f"{r.digit_consistency:.2f}"
+        rows.append(
+            f"| {r.name} | {r.overall.mrr:.2f} | {r.overall.ndcg10:.2f} | "
+            + " | ".join(cells)
+            + f" | {digit} |"
+        )
+    return head + "\n".join(rows) + "\n"
+
+
+def check_gates(report: Report) -> list[tuple[str, bool, str]]:
+    """The initial PLAN section 11.5 acceptance gates, evaluated for one configuration."""
+    ar = report.by_category["ar_factoid"].recall[5]
+    en = report.by_category["en_factoid"].recall[5]
+    ar_en = report.by_category["cross_ar_to_en"].recall[5]
+    en_ar = report.by_category["cross_en_to_ar"].recall[5]
+    return [
+        (
+            "Arabic recall@5 within 10 points of English",
+            en - ar <= 0.10,
+            f"ar {ar:.2f} vs en {en:.2f}",
+        ),
+        ("Arabic→English recall@5 ≥ 0.80", ar_en >= 0.80, f"{ar_en:.2f}"),
+        ("English→Arabic recall@5 ≥ 0.80", en_ar >= 0.80, f"{en_ar:.2f}"),
+        (
+            "digit variants identical",
+            (report.digit_consistency or 0) == 1.0,
+            f"{report.digit_consistency}",
+        ),
+    ]

@@ -1153,3 +1153,46 @@ li[data-kind="created"] .of-state {
     display: none;
   }
 }
+
+/* ---- Retrieval debug (administrators) ---- */
+.rd-form {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-block: 14px 18px;
+}
+
+.rd-form .fsearch {
+  flex: 1;
+  min-width: 0;
+}
+
+.rd-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin-block: 0 14px;
+  color: var(--ink-2);
+  font-size: 12.5px;
+}
+
+.rd-degraded {
+  color: var(--ochre);
+  font-weight: 600;
+}
+
+.rd-text {
+  max-inline-size: 70ch;
+  margin-block: 8px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--hair);
+  border-radius: 6px;
+  background: var(--sunken);
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.muted {
+  color: var(--ink-2);
+}

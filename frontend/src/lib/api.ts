@@ -221,6 +221,42 @@ export type UploadResult = {
   error_code: string | null;
 };
 
+export type DebugHit = {
+  chunk_id: string;
+  document_id: string;
+  document_title: string;
+  collection_id: string;
+  collection_name: string;
+  page_start: number;
+  page_end: number;
+  heading_path: string;
+  content: string;
+  lang: string;
+  similarity: number | null;
+  score: number;
+  vector_rank: number | null;
+  vector_score: number | null;
+  fts_rank: number | null;
+  fts_score: number | null;
+};
+
+export type DebugResponse = {
+  hits: DebugHit[];
+  degraded: boolean;
+  embedding_model: string;
+  accessible_collections: number;
+  vector_candidates: number;
+  fts_candidates: number;
+  lexical_query: string;
+  timings_ms: Record<string, number>;
+};
+
+export const search = {
+  /** Administrators only: per-leg ranks and scores. */
+  debug: (orgId: string, query: string, limit = 10) =>
+    request<DebugResponse>(`/orgs/${orgId}/search/debug`, json({ query, limit })),
+};
+
 export const collections = {
   list: (orgId: string) => request<Collection[]>(`/orgs/${orgId}/collections`),
 };

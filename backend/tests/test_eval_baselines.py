@@ -50,9 +50,11 @@ async def run_baselines(world: World, embedder: Embedder, label: str) -> list[Re
 
 async def test_baselines_discriminate_and_digit_variants_rank_identically(world: World) -> None:
     reports = await run_baselines(world, FakeEmbedder(), "fake hash embedder")
-    answerable = len([q for q in load_questions() if q.gold])
+    questions = load_questions()
+    answerable = len([q for q in questions if q.gold])
+    unanswerable = len(questions) - answerable
     for report in reports:
-        assert report.overall.n == answerable and report.unanswerable == 6
+        assert report.overall.n == answerable and report.unanswerable == unanswerable
         # the same question typed with Western, Arabic-Indic and Persian digits ranks identically
         assert report.digit_consistency == 1.0, report.name
         # same-language questions are findable...

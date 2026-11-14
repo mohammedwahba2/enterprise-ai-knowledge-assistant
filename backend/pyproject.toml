@@ -62,7 +62,7 @@ plugins = []
 files = ["app", "tests", "evals"]
 
 [[tool.mypy.overrides]]
-module = ["asyncpg", "asyncpg.*", "boto3", "boto3.*", "botocore", "botocore.*", "pypdfium2", "pypdfium2.*", "celery", "celery.*", "kombu", "kombu.*"]
+module = ["sentence_transformers", "sentence_transformers.*", "asyncpg", "asyncpg.*", "boto3", "boto3.*", "botocore", "botocore.*", "pypdfium2", "pypdfium2.*", "celery", "celery.*", "kombu", "kombu.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

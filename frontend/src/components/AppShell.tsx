@@ -10,7 +10,10 @@ import { useCurrentOrg } from "./OrgGate";
 import { OrgSwitcher } from "./OrgSwitcher";
 import { UserMenu } from "./UserMenu";
 
-type Item = { key: "ask" | "library" | "attention" | "collections"; icon: IconName };
+type Item = {
+  key: "ask" | "library" | "attention" | "collections" | "retrieval";
+  icon: IconName;
+};
 
 const ITEMS: Item[] = [
   { key: "ask", icon: "ask" },
@@ -18,6 +21,8 @@ const ITEMS: Item[] = [
   { key: "attention", icon: "attention" },
   { key: "collections", icon: "collections" },
 ];
+
+const ADMIN_ITEMS: Item[] = [{ key: "retrieval", icon: "search" }];
 
 export function AppShell({ children }: { children: ReactNode }) {
   const org = useCurrentOrg();
@@ -34,7 +39,12 @@ function Shell({ children }: { children: ReactNode }) {
   const { summary } = useDocumentLive();
   const attention = summary?.needs_attention ?? 0;
   const pathname = usePathname();
-  const current = pathname.startsWith(`/${org.slug}/library`) ? "library" : "ask";
+  const current = pathname.startsWith(`/${org.slug}/library`)
+    ? "library"
+    : pathname.startsWith(`/${org.slug}/retrieval`)
+      ? "retrieval"
+      : "ask";
+  const isAdmin = org.role === "owner" || org.role === "admin";
 
   // Ask, Library and Needs attention exist so far; other destinations are rendered disabled, not as
   // dead links. Needs attention is the Library's attention panel.
@@ -42,6 +52,7 @@ function Shell({ children }: { children: ReactNode }) {
     ask: `/${org.slug}`,
     library: `/${org.slug}/library`,
     attention: `/${org.slug}/library#attention`,
+    retrieval: `/${org.slug}/retrieval`,
   };
   const renderItem = (item: Item) =>
     hrefs[item.key] ? (
@@ -74,7 +85,9 @@ function Shell({ children }: { children: ReactNode }) {
       <div className="shell">
         <aside className="rail">
           <OrgSwitcher current={org} />
-          <nav aria-label={t("Nav.primary")}>{ITEMS.map(renderItem)}</nav>
+          <nav aria-label={t("Nav.primary")}>
+            {(isAdmin ? [...ITEMS, ...ADMIN_ITEMS] : ITEMS).map(renderItem)}
+          </nav>
           <div className="rail-foot">
             <UserMenu />
             <LocaleSwitcher />

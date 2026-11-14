@@ -18,7 +18,7 @@
 {"id": "ar-06", "text": "كم مرة في السنة يقبل إقرار فقدان الإيصال؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "travel_expense_ar", "evidence": "أكثر من مرتين في السنة"}]}
 {"id": "ar-07", "text": "كم يوماً تحفظ النسخ الاحتياطية؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "it_security_ar", "evidence": "لمدة 90 يوماً قبل حذفها"}]}
 {"id": "ar-08", "text": "خلال كم ساعة يجب إبلاغ فريق الأمن عن فقدان جهاز محمول؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "it_security_ar", "evidence": "خلال ساعتين من فقدان أي جهاز"}]}
-{"id": "ar-09", "text": "كم مرة تراجع صلاحيات الوصول إلى الأنظمة؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "it_security_ar", "evidence": "كل 6 أشهر"}]}
+{"id": "ar-09", "text": "كم مرة تراجع صلاحيات الوصول إلى الأنظمة؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "it_security_ar", "evidence": "تراجع صلاحيات الوصول إلى الأنظمة كل 6 أشهر"}]}
 {"id": "ar-10", "text": "متى تستبدل المركبة؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "fleet_maintenance_ar", "evidence": "تستبدل المركبة عند بلوغها 8 سنوات"}]}
 {"id": "ar-11", "text": "ما المسافة التي يوضع عندها المثلث العاكس خلف المركبة المعطلة؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "fleet_maintenance_ar", "evidence": "على بعد 50 متراً"}]}
 {"id": "ar-12", "text": "ما الحمولة القصوى للشاحنة الصغيرة؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "fleet_maintenance_ar", "evidence": "الحمولة القصوى للشاحنة الصغيرة 3 أطنان"}]}
@@ -67,3 +67,85 @@
 {"id": "none-04", "text": "كم تبلغ مكافأة نهاية الخدمة للموظف؟", "lang": "ar", "category": "unanswerable", "gold": []}
 {"id": "none-05", "text": "Who is the CEO of Falcon Logistics?", "lang": "en", "category": "unanswerable", "gold": []}
 {"id": "none-06", "text": "ما هو سعر سهم الشركة في السوق؟", "lang": "ar", "category": "unanswerable", "gold": []}
+{"id": "en-13", "text": "How long are customer delivery records kept?", "lang": "en", "category": "en_factoid", "gold": [{"doc": "data_privacy_en", "evidence": "Customer delivery records are kept for 7 years"}]}
+{"id": "en-14", "text": "How long is CCTV footage from depots kept?", "lang": "en", "category": "en_factoid", "gold": [{"doc": "data_privacy_en", "evidence": "CCTV footage from depots is kept for 30 days"}]}
+{"id": "en-15", "text": "Within how many hours must a suspected personal data breach be reported to the Data Protection Officer?", "lang": "en", "category": "en_factoid", "gold": [{"doc": "data_privacy_en", "evidence": "reported to the Data Protection Officer within 24 hours"}]}
+{"id": "en-16", "text": "How long does the company have to notify the regulator about a harmful breach?", "lang": "en", "category": "en_factoid", "gold": [{"doc": "data_privacy_en", "evidence": "the regulator is notified within 72 hours"}]}
+{"id": "en-17", "text": "How long is the probation period?", "lang": "en", "category": "en_factoid", "gold": [{"doc": "onboarding_en", "evidence": "probation period of 90 days"}]}
+{"id": "en-18", "text": "How much is the relocation allowance?", "lang": "en", "category": "en_factoid", "gold": [{"doc": "onboarding_en", "evidence": "one-time relocation allowance of SAR 5,000"}]}
+{"id": "en-19", "text": "When is the confirmation letter issued after the day 90 review?", "lang": "en", "category": "en_factoid", "gold": [{"doc": "onboarding_en", "evidence": "within 10 working days after a successful day 90 review"}]}
+{"id": "en-20", "text": "What is the speed limit inside the warehouse?", "lang": "en", "category": "en_factoid", "gold": [{"doc": "warehouse_safety_en", "evidence": "speed limit inside the warehouse is 8 km/h"}]}
+{"id": "en-21", "text": "How high may pallets be stacked?", "lang": "en", "category": "en_factoid", "gold": [{"doc": "warehouse_safety_en", "evidence": "a maximum of 4 high"}]}
+{"id": "en-22", "text": "What is the minimum lighting level for night shifts?", "lang": "en", "category": "en_factoid", "gold": [{"doc": "warehouse_safety_en", "evidence": "at least 200 lux"}]}
+{"id": "en-23", "text": "How quickly must a warehouse injury be reported to the shift supervisor?", "lang": "en", "category": "en_factoid", "gold": [{"doc": "warehouse_safety_en", "evidence": "reported to the shift supervisor within 2 hours"}]}
+{"id": "en-24", "text": "How fast must a customer complaint be acknowledged?", "lang": "en", "category": "en_factoid", "gold": [{"doc": "complaints_en", "evidence": "acknowledged within 4 business hours"}]}
+{"id": "en-25", "text": "How much compensation can a team lead approve for a late delivery?", "lang": "en", "category": "en_factoid", "gold": [{"doc": "complaints_en", "evidence": "compensation of up to SAR 500 for a late delivery"}]}
+{"id": "en-26", "text": "How long do customers have to submit photographs of damaged goods?", "lang": "en", "category": "en_factoid", "gold": [{"doc": "complaints_en", "evidence": "within 48 hours of delivery"}]}
+{"id": "en-27", "text": "On which working day are the monthly books closed?", "lang": "en", "category": "en_factoid", "gold": [{"doc": "finance_close_en", "evidence": "closed on working day 5"}]}
+{"id": "en-28", "text": "Who must approve manual journal entries above SAR 100,000?", "lang": "en", "category": "en_factoid", "gold": [{"doc": "finance_close_en", "evidence": "above SAR 100,000 require approval from the Chief Financial Officer"}]}
+{"id": "en-29", "text": "What cost makes an item a fixed asset?", "lang": "en", "category": "en_factoid", "gold": [{"doc": "finance_close_en", "evidence": "cost exceeds SAR 10,000"}]}
+{"id": "ar-13", "text": "ما الرقم الداخلي للطوارئ؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "first_aid_ar", "evidence": "الرقم الداخلي للطوارئ هو 5555"}]}
+{"id": "ar-14", "text": "أين نقطة التجمع عند الإخلاء؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "first_aid_ar", "evidence": "نقطة التجمع عند الإخلاء هي البوابة الشرقية"}]}
+{"id": "ar-15", "text": "كم موظفاً يخدمهم مسعف واحد في الوردية؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "first_aid_ar", "evidence": "مسعف مدرب واحد لكل 25 موظفاً"}]}
+{"id": "ar-16", "text": "كم ساعة تدريب سنوياً يلتزم بها كل موظف؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "training_ar", "evidence": "40 ساعة تدريبية على الأقل في السنة"}]}
+{"id": "ar-17", "text": "كم تتحمل الشركة من رسوم الامتحان المهني؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "training_ar", "evidence": "تتحمل الشركة 75 في المائة من رسوم الامتحان المهني"}]}
+{"id": "ar-18", "text": "ما مدة الالتزام بالبقاء بعد دورة تتجاوز 20,000 ريال؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "training_ar", "evidence": "التزم الموظف بالبقاء في الشركة سنتين"}]}
+{"id": "ar-19", "text": "ما الهدف الزمني لاستعادة الأنظمة الحرجة؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "continuity_ar", "evidence": "الهدف الزمني لاستعادة الأنظمة الحرجة هو 4 ساعات"}]}
+{"id": "ar-20", "text": "أين يوجد المركز البديل للعمليات؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "continuity_ar", "evidence": "مركز عمليات بديل في مدينة الدمام"}]}
+{"id": "ar-21", "text": "خلال كم ساعة تبلغ الشركة العملاء عند انقطاع الخدمة؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "continuity_ar", "evidence": "تبلغهم إدارة خدمة العملاء خلال ساعتين"}]}
+{"id": "ar-22", "text": "ما الحد الأقصى لقيمة الهدية المقبولة من مورد؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "gifts_ar", "evidence": "هدية تزيد قيمتها على 500 ريال"}]}
+{"id": "ar-23", "text": "كم تبلغ التكلفة القصوى لوجبة العمل مع مورد للفرد؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "gifts_ar", "evidence": "ألا تتجاوز تكلفتها 1500 ريال للفرد"}]}
+{"id": "ar-24", "text": "ما رقم خط النزاهة؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "gifts_ar", "evidence": "800-123-4567"}]}
+{"id": "ar-25", "text": "كم سنة تحفظ العقود التجارية؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "records_ar", "evidence": "تحفظ العقود التجارية 10 سنوات بعد انتهائها"}]}
+{"id": "ar-26", "text": "متى يجري الجرد السنوي للسجلات؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "records_ar", "evidence": "جرداً سنوياً في شهر يناير"}]}
+{"id": "ar-27", "text": "خلال كم يوماً تعاد السجلات المستعارة من الأرشيف؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "records_ar", "evidence": "وتعاد خلال 7 أيام"}]}
+{"id": "x-ar-en-09", "text": "كم سنة تحفظ سجلات التسليم الخاصة بالعملاء؟", "lang": "ar", "category": "cross_ar_to_en", "gold": [{"doc": "data_privacy_en", "evidence": "Customer delivery records are kept for 7 years"}]}
+{"id": "x-ar-en-10", "text": "كم مدة فترة التجربة للموظف الجديد؟", "lang": "ar", "category": "cross_ar_to_en", "gold": [{"doc": "onboarding_en", "evidence": "probation period of 90 days"}]}
+{"id": "x-ar-en-11", "text": "ما الحد الأقصى لسرعة الرافعة الشوكية داخل المستودع؟", "lang": "ar", "category": "cross_ar_to_en", "gold": [{"doc": "warehouse_safety_en", "evidence": "speed limit inside the warehouse is 8 km/h"}]}
+{"id": "x-ar-en-12", "text": "خلال كم ساعة يجب الرد على شكوى العميل؟", "lang": "ar", "category": "cross_ar_to_en", "gold": [{"doc": "complaints_en", "evidence": "acknowledged within 4 business hours"}]}
+{"id": "x-ar-en-13", "text": "في أي يوم عمل تقفل الدفاتر المحاسبية الشهرية؟", "lang": "ar", "category": "cross_ar_to_en", "gold": [{"doc": "finance_close_en", "evidence": "closed on working day 5"}]}
+{"id": "x-ar-en-14", "text": "ما بدل الانتقال لمن ينتقل للعمل في وظيفة جديدة؟", "lang": "ar", "category": "cross_ar_to_en", "gold": [{"doc": "onboarding_en", "evidence": "one-time relocation allowance of SAR 5,000"}]}
+{"id": "x-ar-en-15", "text": "كم يوماً تحفظ تسجيلات كاميرات المراقبة في المستودعات؟", "lang": "ar", "category": "cross_ar_to_en", "gold": [{"doc": "data_privacy_en", "evidence": "CCTV footage from depots is kept for 30 days"}]}
+{"id": "x-ar-en-16", "text": "كم تعويضاً يمكن لقائد الفريق الموافقة عليه عن تأخر التسليم؟", "lang": "ar", "category": "cross_ar_to_en", "gold": [{"doc": "complaints_en", "evidence": "compensation of up to SAR 500 for a late delivery"}]}
+{"id": "x-en-ar-09", "text": "What is the internal emergency number?", "lang": "en", "category": "cross_en_to_ar", "gold": [{"doc": "first_aid_ar", "evidence": "الرقم الداخلي للطوارئ هو 5555"}]}
+{"id": "x-en-ar-10", "text": "Where is the evacuation assembly point?", "lang": "en", "category": "cross_en_to_ar", "gold": [{"doc": "first_aid_ar", "evidence": "نقطة التجمع عند الإخلاء هي البوابة الشرقية"}]}
+{"id": "x-en-ar-11", "text": "How many training hours must each employee complete per year?", "lang": "en", "category": "cross_en_to_ar", "gold": [{"doc": "training_ar", "evidence": "40 ساعة تدريبية على الأقل في السنة"}]}
+{"id": "x-en-ar-12", "text": "What is the recovery time objective for critical systems?", "lang": "en", "category": "cross_en_to_ar", "gold": [{"doc": "continuity_ar", "evidence": "الهدف الزمني لاستعادة الأنظمة الحرجة هو 4 ساعات"}]}
+{"id": "x-en-ar-13", "text": "How many years are commercial contracts retained?", "lang": "en", "category": "cross_en_to_ar", "gold": [{"doc": "records_ar", "evidence": "تحفظ العقود التجارية 10 سنوات بعد انتهائها"}]}
+{"id": "x-en-ar-14", "text": "What is the hotline number for reporting integrity violations?", "lang": "en", "category": "cross_en_to_ar", "gold": [{"doc": "gifts_ar", "evidence": "800-123-4567"}]}
+{"id": "x-en-ar-15", "text": "What is the maximum value of a gift an employee may accept?", "lang": "en", "category": "cross_en_to_ar", "gold": [{"doc": "gifts_ar", "evidence": "هدية تزيد قيمتها على 500 ريال"}]}
+{"id": "x-en-ar-16", "text": "Where is the backup operations centre located?", "lang": "en", "category": "cross_en_to_ar", "gold": [{"doc": "continuity_ar", "evidence": "مركز عمليات بديل في مدينة الدمام"}]}
+{"id": "id-01", "text": "What does policy POL-DP-021 cover?", "lang": "en", "category": "identifier", "gold": [{"doc": "data_privacy_en", "evidence": "POL-DP-021"}]}
+{"id": "id-02", "text": "What is in POL-HR-014?", "lang": "en", "category": "identifier", "gold": [{"doc": "onboarding_en", "evidence": "POL-HR-014"}]}
+{"id": "id-03", "text": "Summarize POL-WH-007", "lang": "en", "category": "identifier", "gold": [{"doc": "warehouse_safety_en", "evidence": "POL-WH-007"}]}
+{"id": "id-04", "text": "POL-CS-032", "lang": "en", "category": "identifier", "gold": [{"doc": "complaints_en", "evidence": "POL-CS-032"}]}
+{"id": "id-05", "text": "Which document is POL-FN-019?", "lang": "en", "category": "identifier", "gold": [{"doc": "finance_close_en", "evidence": "POL-FN-019"}]}
+{"id": "id-06", "text": "ماذا تغطي السياسة POL-HS-011؟", "lang": "ar", "category": "identifier", "gold": [{"doc": "first_aid_ar", "evidence": "POL-HS-011"}]}
+{"id": "id-07", "text": "ما موضوع السياسة POL-TD-004؟", "lang": "ar", "category": "identifier", "gold": [{"doc": "training_ar", "evidence": "POL-TD-004"}]}
+{"id": "id-08", "text": "ما هي السياسة POL-BC-002؟", "lang": "ar", "category": "identifier", "gold": [{"doc": "continuity_ar", "evidence": "POL-BC-002"}]}
+{"id": "id-09", "text": "اشرح السياسة POL-CG-009", "lang": "ar", "category": "identifier", "gold": [{"doc": "gifts_ar", "evidence": "POL-CG-009"}]}
+{"id": "id-10", "text": "POL-RR-016", "lang": "ar", "category": "identifier", "gold": [{"doc": "records_ar", "evidence": "POL-RR-016"}]}
+{"id": "id-11", "text": "ماذا تغطي السياسة POL-HS-٠١١؟", "lang": "ar", "category": "identifier", "gold": [{"doc": "first_aid_ar", "evidence": "POL-HS-011"}]}
+{"id": "id-12", "text": "What is POL-WH-٠٠٧ about?", "lang": "en", "category": "identifier", "gold": [{"doc": "warehouse_safety_en", "evidence": "POL-WH-007"}]}
+{"id": "para-01", "text": "How much time does a customer have to send pictures of broken parcels?", "lang": "en", "category": "paraphrase", "gold": [{"doc": "complaints_en", "evidence": "within 48 hours of delivery"}]}
+{"id": "para-02", "text": "What is the highest payout we can approve ourselves for a delayed shipment, without involving a manager?", "lang": "en", "category": "paraphrase", "gold": [{"doc": "complaints_en", "evidence": "compensation of up to SAR 500 for a late delivery"}]}
+{"id": "para-03", "text": "For how many months can we keep GPS data from lorries?", "lang": "en", "category": "paraphrase", "gold": [{"doc": "data_privacy_en", "evidence": "Driver telematics data is kept for 13 months"}]}
+{"id": "para-04", "text": "ما أقصى وقت مسموح لإبلاغ المشرف عن حادث عمل؟", "lang": "ar", "category": "paraphrase", "gold": [{"doc": "first_aid_ar", "evidence": "خلال ساعة واحدة من وقوعها"}]}
+{"id": "para-05", "text": "ما نسبة تكلفة شهادة الامتحان التي تدفعها المؤسسة؟", "lang": "ar", "category": "paraphrase", "gold": [{"doc": "training_ar", "evidence": "تتحمل الشركة 75 في المائة من رسوم الامتحان المهني"}]}
+{"id": "para-06", "text": "هل يسمح بحضور عشاء مع مورد وكم الحد الأعلى للتكلفة؟", "lang": "ar", "category": "paraphrase", "gold": [{"doc": "gifts_ar", "evidence": "ألا تتجاوز تكلفتها 1500 ريال للفرد"}]}
+{"id": "typo-01", "text": "كَمْ يَوْماً تُحْفَظُ النُّسَخُ الاحْتِيَاطِيَّةُ؟", "lang": "ar", "category": "typo_diacritic", "gold": [{"doc": "it_security_ar", "evidence": "لمدة 90 يوماً قبل حذفها"}]}
+{"id": "typo-02", "text": "ما مده اجازه الزواج؟", "lang": "ar", "category": "typo_diacritic", "gold": [{"doc": "hr_leave_ar", "evidence": "إجازة زواج مدفوعة الأجر مدتها 5 أيام عمل"}]}
+{"id": "typo-03", "text": "How many days of anual leav do employes get?", "lang": "en", "category": "typo_diacritic", "gold": [{"doc": "hr_leave_en", "evidence": "25 working days of paid annual leave"}]}
+{"id": "typo-04", "text": "forklit speed limmit in the warehose", "lang": "en", "category": "typo_diacritic", "gold": [{"doc": "warehouse_safety_en", "evidence": "speed limit inside the warehouse is 8 km/h"}]}
+{"id": "typo-05", "text": "كم تبلغ ميزانيه التدريب؟", "lang": "ar", "category": "typo_diacritic", "gold": [{"doc": "training_ar", "evidence": "2 في المائة من إجمالي الرواتب السنوية"}]}
+{"id": "typo-06", "text": "مَا هُوَ الرَّقْمُ الدَّاخِلِيُّ لِلطَّوَارِئِ؟", "lang": "ar", "category": "typo_diacritic", "gold": [{"doc": "first_aid_ar", "evidence": "الرقم الداخلي للطوارئ هو 5555"}]}
+{"id": "typo-07", "text": "WHAT IS THE PASSWORD MINIMUM LENGTH???", "lang": "en", "category": "typo_diacritic", "gold": [{"doc": "it_security_en", "evidence": "at least 14 characters long"}]}
+{"id": "typo-08", "text": "كم يوم تحفظ النسخ الاحتياطيه", "lang": "ar", "category": "typo_diacritic", "gold": [{"doc": "it_security_ar", "evidence": "لمدة 90 يوماً قبل حذفها"}]}
+{"id": "multi-01", "text": "What is the speed limit in the warehouse and how many days are CCTV recordings kept?", "lang": "en", "category": "multi_passage", "gold": [{"doc": "warehouse_safety_en", "evidence": "speed limit inside the warehouse is 8 km/h"}, {"doc": "data_privacy_en", "evidence": "CCTV footage from depots is kept for 30 days"}]}
+{"id": "multi-02", "text": "How soon must a complaint be acknowledged and how long is the probation period?", "lang": "en", "category": "multi_passage", "gold": [{"doc": "complaints_en", "evidence": "acknowledged within 4 business hours"}, {"doc": "onboarding_en", "evidence": "probation period of 90 days"}]}
+{"id": "multi-03", "text": "ما رقم الطوارئ الداخلي وكم سنة تحفظ العقود التجارية؟", "lang": "ar", "category": "multi_passage", "gold": [{"doc": "first_aid_ar", "evidence": "الرقم الداخلي للطوارئ هو 5555"}, {"doc": "records_ar", "evidence": "تحفظ العقود التجارية 10 سنوات بعد انتهائها"}]}
+{"id": "multi-04", "text": "ما الحد الأقصى للهدية وما الهدف الزمني لاستعادة الأنظمة؟", "lang": "ar", "category": "multi_passage", "gold": [{"doc": "gifts_ar", "evidence": "هدية تزيد قيمتها على 500 ريال"}, {"doc": "continuity_ar", "evidence": "الهدف الزمني لاستعادة الأنظمة الحرجة هو 4 ساعات"}]}
+{"id": "none-07", "text": "What is the company's policy on pets in the office?", "lang": "en", "category": "unanswerable", "gold": []}
+{"id": "none-08", "text": "How many stock options does a new manager receive?", "lang": "en", "category": "unanswerable", "gold": []}
+{"id": "none-09", "text": "ما هي سياسة السفر بالدرجة الأولى للرئيس التنفيذي؟", "lang": "ar", "category": "unanswerable", "gold": []}
+{"id": "none-10", "text": "كم يبلغ بدل السكن للموظفين الجدد؟", "lang": "ar", "category": "unanswerable", "gold": []}

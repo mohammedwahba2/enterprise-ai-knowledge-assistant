@@ -16,7 +16,7 @@ QUESTIONS = load_questions()
 
 def test_corpus_has_unique_slugs_languages_and_synthetic_marker() -> None:
     slugs = [d.slug for d in build_corpus()]
-    assert len(slugs) == len(set(slugs)) == 34
+    assert len(slugs) == len(set(slugs)) == 44
     assert {d.language for d in DOCS.values()} == {"ar", "en", "mixed"}
     # every document says it is synthetic: this repository never contains real company data
     assert all("synthetic" in d.text.lower() or "افتراضية" in d.text for d in DOCS.values())
@@ -38,13 +38,16 @@ def test_question_ids_are_unique_and_categories_are_known() -> None:
     ids = [q.id for q in QUESTIONS]
     assert len(ids) == len(set(ids))
     assert {q.category for q in QUESTIONS} <= set(CATEGORIES)
-    assert len(QUESTIONS) >= 60
+    assert len(QUESTIONS) >= 150  # PLAN section 11.5
 
 
 def test_every_category_and_language_pair_is_covered() -> None:
     counts = Counter(q.category for q in QUESTIONS)
     assert set(counts) == set(CATEGORIES)
-    minimum = {"en_factoid": 12, "ar_factoid": 12, "cross_ar_to_en": 8, "cross_en_to_ar": 8}
+    minimum = {
+        "en_factoid": 25, "ar_factoid": 25, "cross_ar_to_en": 15, "cross_en_to_ar": 15,
+        "identifier": 10, "paraphrase": 5, "typo_diacritic": 8, "multi_passage": 4,
+    }  # fmt: skip
     for category, n in minimum.items():
         assert counts[category] >= n, category
     assert {q.lang for q in QUESTIONS} == {"ar", "en"}

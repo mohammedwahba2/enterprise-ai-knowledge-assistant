@@ -3,6 +3,7 @@ const PATHS = {
   library: "M3 2.5h8a2 2 0 0 1 2 2v9H5a2 2 0 0 1-2-2zM3 11.5a2 2 0 0 1 2-2h8",
   attention: "M8 2.2a5.8 5.8 0 1 0 0 11.6A5.8 5.8 0 0 0 8 2.2zM8 5v3.4M8 10.8v.1",
   collections: "M2 4.5h4l1.2 1.5H14v6.5H2z",
+  search: "M7 2.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9zM10.4 10.4 13.5 13.5",
 } as const;
 
 export type IconName = keyof typeof PATHS;

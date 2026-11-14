@@ -27,6 +27,10 @@ CATEGORIES = (
     "mixed",
     "digit_variant",
     "variant_entity",
+    "identifier",
+    "paraphrase",
+    "typo_diacritic",
+    "multi_passage",
     "restricted",
     "unanswerable",
 )

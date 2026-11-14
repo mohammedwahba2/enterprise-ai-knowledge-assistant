@@ -10,7 +10,8 @@
     "collections": "Collections",
     "primary": "Primary",
     "comingSoon": "Not available yet",
-    "attentionCount": "{count} documents need attention"
+    "attentionCount": "{count} documents need attention",
+    "retrieval": "Retrieval"
   },
   "Locale": {
     "switchTo": "العربية",
@@ -207,6 +208,29 @@
       },
       "EMBEDDER_UNAVAILABLE": "The indexing service was unavailable. It will be retried automatically; you can also try again.",
       "EMBEDDING_FAILED": "The indexing model couldn’t process this document. Ask an administrator to check the setup."
+    }
+  },
+  "Retrieval": {
+    "title": "Retrieval debug",
+    "intro": "See how a question is answered by full-text and vector search and how the two are fused. Only administrators can use this; results are limited to collections you can access.",
+    "placeholder": "Type a question to test",
+    "search": "Search",
+    "searching": "Searching…",
+    "adminOnly": "Only workspace administrators can use this page.",
+    "noResults": "No matching passages.",
+    "model": "Embedding model: {model}",
+    "collections": "{count, plural, one {1 collection searched} other {{count} collections searched}}",
+    "candidates": "Candidates: vector {vector}, full text {fts}",
+    "timing": "{ms} ms",
+    "degraded": "Embedding service unavailable: full-text results only",
+    "pages": "p. {from}–{to}",
+    "showText": "Show passage",
+    "hideText": "Hide passage",
+    "columns": {
+      "chunk": "Passage",
+      "vector": "Vector",
+      "fts": "Full text",
+      "fused": "Fused"
     }
   }
 }
