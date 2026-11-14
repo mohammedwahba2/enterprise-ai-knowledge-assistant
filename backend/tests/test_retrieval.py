@@ -330,3 +330,44 @@ async def test_filtered_vector_search_still_fills_the_candidate_list(world: Worl
         hits = await retrieval._vector_leg(ctx, FakeEmbedder(), query, scope, 40, settings)  # type: ignore[arg-type]
     # the viewer may see exactly the two General chunks and none of the 70 restricted ones
     assert len(hits) == 2
+
+
+async def test_the_query_reaches_the_embedder_with_ascii_digits(world: World) -> None:
+    """The fake embedder folds digits itself, which would hide a regression: record what it gets."""
+    recorder = FakeEmbedder()
+    world.embedder = recorder
+    t = await team(world)
+    await search(t.people["viewer"], t.oid, "الحد ٢٥٬٠٠٠ ريال و ۷۵ يوماً")
+    assert recorder.texts == ["الحد 25,000 ريال و 75 يوماً"]
+
+
+def test_product_fusion_defaults_are_the_cell_the_evaluation_chose() -> None:
+    from app.core.config import Settings
+    from evals.stage7 import CHOSEN_K, CHOSEN_VECTOR_WEIGHT
+
+    settings = Settings()
+    assert (settings.rrf_k, settings.rrf_vector_weight) == (CHOSEN_K, CHOSEN_VECTOR_WEIGHT)
+
+
+async def test_the_lexical_leg_alone_tells_documents_apart_by_digits_in_any_script(
+    world: World,
+) -> None:
+    """With the embedder down only full text answers, so a broken lexical normalization cannot be
+    hidden by the vector leg. Two documents differ ONLY by a number; the question types that
+    number in Western, Arabic-Indic or Persian digits and must find the right one every time."""
+    world.embedder = FakeEmbedder(unavailable=True)
+    t = await team(world)
+    owner = t.people["owner"]
+    for name, amount in (("limit a", "25000"), ("limit b", "30000")):
+        await index(
+            world, owner, t.oid, t.general, name, f"الحد الأقصى للمصروفات {amount} ريال",
+            embedder=FakeEmbedder(),
+        )  # fmt: skip
+    expectations = {
+        "الحد الأقصى 25000": "limit a", "الحد الأقصى ٢٥٠٠٠": "limit a", "الحد الأقصى ۲۵۰۰۰": "limit a",
+        "الحد الأقصى 30000": "limit b", "الحد الأقصى ٣٠٠٠٠": "limit b", "الحد الأقصى ۳۰۰۰۰": "limit b",
+    }  # fmt: skip
+    for query, expected in expectations.items():
+        result = await search(owner, t.oid, query)
+        assert result["degraded"] is True
+        assert titles(result)[0] == expected, query

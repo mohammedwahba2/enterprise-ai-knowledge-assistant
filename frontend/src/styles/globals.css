@@ -1196,3 +1196,9 @@ li[data-kind="created"] .of-state {
 .muted {
   color: var(--ink-2);
 }
+
+.rd-toggle {
+  display: block;
+  margin-block-start: 4px;
+  padding: 0;
+}

@@ -9,6 +9,7 @@ from evals.ablation import (
     RawFtsRetriever,
     VectorIndex,
     api_retriever,
+    cached,
     hybrid,
     load_chunks,
     routed,
@@ -21,6 +22,18 @@ from evals.harness import Report, Retriever, evaluate
 ApiPost = Callable[[str], Awaitable[list[dict[str, object]]]]
 
 
+FUSION_K = (60, 20, 10, 5, 3)
+FUSION_WEIGHTS = (1, 2, 3, 4)
+# The cell of the grid the product uses (see settings.rrf_k / rrf_vector_weight); every other
+# hybrid in the matrix is evaluated at the same setting so the comparisons are fair.
+CHOSEN_K = 3
+CHOSEN_VECTOR_WEIGHT = 2
+
+
+def chosen(legs: dict[str, Retriever], vector_leg: str = "vector") -> Retriever:
+    return hybrid(legs, k=CHOSEN_K, weights={vector_leg: CHOSEN_VECTOR_WEIGHT})
+
+
 async def run_ablations(
     sessions: async_sessionmaker[AsyncSession],
     corpus: Sequence[CorpusDoc],
@@ -29,7 +42,8 @@ async def run_ablations(
     primary: EmbeddingModel,
     candidates: Sequence[EmbeddingModel] = (),
     api_post: ApiPost | None = None,
-) -> list[Report]:
+    dev_ids: frozenset[str] = frozenset(),
+) -> tuple[list[Report], str]:
     """`primary` is the product's embedder (bge-m3); `candidates` are the bake-off challengers."""
     chunks = await load_chunks(sessions)
     fts_language = FtsRetriever(sessions, "language", k=40)
@@ -41,7 +55,28 @@ async def run_ablations(
     async def run(name: str, retriever: Callable[..., Awaitable[Sequence[object]]]) -> Report:
         return await evaluate(name, retriever, questions, corpus)  # type: ignore[arg-type]
 
-    reports = [
+    # Fusion grid first: legs are cached, so each (k, weight) cell is pure re-fusion.
+    grid_vec = cached(vec_primary)
+    grid_fts = cached(fts_language)
+    reports: list[Report] = []
+    split_rows: list[str] = []
+    dev = [q for q in questions if q.id in dev_ids]
+    test = [q for q in questions if q.id not in dev_ids]
+    for rrf_k in FUSION_K:
+        for weight in FUSION_WEIGHTS:
+            cell = hybrid(
+                {"vector": grid_vec, "fts": grid_fts}, k=rrf_k, weights={"vector": weight}
+            )
+            reports.append(await run(f"FUSION GRID k={rrf_k} vector-weight={weight}", cell))
+            if dev_ids:
+                d = await evaluate("dev", cell, dev, corpus)
+                t = await evaluate("test", cell, test, corpus)
+                split_rows.append(
+                    f"| k={rrf_k} weight={weight} | {d.overall.recall[5]:.2f} "
+                    f"| {t.overall.recall[5]:.2f} "
+                    f"| {d.overall.mrr:.2f} | {t.overall.mrr:.2f} |"
+                )
+    reports += [
         await run("full text, language-aware (arabic/english configs)", fts_language),
         await run("full text, simple config", fts_simple),
         await run("full text, raw (no normalization at all)", fts_raw),
@@ -56,15 +91,15 @@ async def run_ablations(
         ),
         await run(
             f"hybrid RRF, {primary.name} + full text (simple)",
-            hybrid({"vector": vec_primary, "fts": fts_simple}),
+            chosen({"vector": vec_primary, "fts": fts_simple}),
         ),
         await run(
             f"hybrid RRF, {primary.name} + full text (raw)",
-            hybrid({"vector": vec_primary, "fts": fts_raw}),
+            chosen({"vector": vec_primary, "fts": fts_raw}),
         ),
         await run(
-            f"hybrid RRF, {primary.name} weighted 2:1 over full text",
-            hybrid({"vector": vec_primary, "fts": fts_language}, weights={"vector": 2}),
+            f"hybrid RRF, {primary.name} + full text (language-aware), chosen k/weight",
+            chosen({"vector": vec_primary, "fts": fts_language}),
         ),
     ]
     candidate_vectors: dict[str, Retriever] = {}
@@ -76,7 +111,7 @@ async def run_ablations(
         reports.append(
             await run(
                 f"hybrid RRF, {model.name} + full text (language-aware)",
-                hybrid({"vector": legs, "fts": fts_language}),
+                chosen({"vector": legs, "fts": fts_language}),
             )
         )
     if candidate_vectors:
@@ -85,14 +120,14 @@ async def run_ablations(
             **candidate_vectors,
             "fts": fts_language,
         }
-        ensemble = hybrid(everything)
+        ensemble = chosen(everything, vector_leg=primary.name)
         reports.append(await run("hybrid RRF, all embedders + full text (ensemble)", ensemble))
         reports.append(
             await run(
                 "language-routed: Arabic questions use the ensemble, English the primary hybrid",
                 routed(
                     {"ar": ensemble},
-                    hybrid({"vector": vec_primary, "fts": fts_language}),
+                    chosen({"vector": vec_primary, "fts": fts_language}),
                 ),
             )
         )
@@ -103,4 +138,11 @@ async def run_ablations(
                 api_retriever(api_post, corpus),
             )
         )
-    return reports
+    split_table = ""
+    if split_rows:
+        split_table = (
+            f"| fusion cell | dev R@5 (n={len(dev)}) | test R@5 (n={len(test)}) "
+            "| dev MRR | test MRR |\n"
+            "|---|---|---|---|---|\n" + "\n".join(split_rows) + "\n"
+        )
+    return reports, split_table

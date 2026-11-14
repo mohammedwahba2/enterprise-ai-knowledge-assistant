@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiError, auth, readCookie, request } from "@/lib/api";
+import { ApiError, auth, readCookie, request, search } from "@/lib/api";
 import { describeError } from "@/lib/errors";
 import { PASSWORD_MAX, PASSWORD_MIN, passwordLengthOk } from "@/lib/passwordPolicy";
 import { safeNext } from "@/lib/redirect";
@@ -179,5 +179,30 @@ describe("multipart uploads", () => {
     await request("/orgs/o/documents", { method: "POST", body });
     expect(calls[0]!.headers.get("content-type")).toBeNull();
     expect(calls[0]!.headers.get("x-csrf-token")).toBe("tok123"); // CSRF still applies
+  });
+});
+
+describe("retrieval debug client", () => {
+  it("posts the question as JSON with the CSRF header to the debug route", async () => {
+    let body = "";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init: RequestInit) => {
+        calls.push({ url, method: String(init.method), headers: new Headers(init.headers) });
+        body = String(init.body);
+        return ok({ hits: [] });
+      }),
+    );
+    await search.debug("org-1", "كم يوماً؟", 7);
+    expect(calls[0]!.url).toBe("/api/v1/orgs/org-1/search/debug");
+    expect(calls[0]!.method).toBe("POST");
+    expect(calls[0]!.headers.get("x-csrf-token")).toBe("tok123");
+    expect(calls[0]!.headers.get("content-type")).toBe("application/json");
+    expect(JSON.parse(body)).toEqual({ query: "كم يوماً؟", limit: 7 });
+  });
+
+  it("surfaces the API's 403 for non-administrators as an ApiError", async () => {
+    queue.push(problem(403, "FORBIDDEN"));
+    await expect(search.debug("org-1", "x")).rejects.toMatchObject({ status: 403, code: "FORBIDDEN" });
   });
 });

@@ -170,10 +170,10 @@ async def _run(
     fts_hits = await _lexical_leg(ctx, words, scope, n)
     t_fts = time.perf_counter() - t0
 
-    fused = rrf(
-        {"vector": [c for c, _ in vector_hits], "fts": [c for c, _ in fts_hits]},
-        k=settings.rrf_k,
-    )[: request.limit]
+    vector_ids = [c for c, _ in vector_hits]
+    rankings = {f"vector#{i}": vector_ids for i in range(settings.rrf_vector_weight)}
+    rankings["fts"] = [c for c, _ in fts_hits]
+    fused = rrf(rankings, k=settings.rrf_k)[: request.limit]
     ids = [cid for cid, _ in fused]
     details: dict[uuid.UUID, tuple[Chunk, str, str]] = {}
     if ids:

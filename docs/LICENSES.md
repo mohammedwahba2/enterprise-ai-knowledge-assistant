@@ -22,5 +22,8 @@ The project is licensed under Apache-2.0 (see `LICENSE`). This file tracks notab
 | Noto fonts, DejaVu fonts (worker image) | Arabic and Latin glyph coverage for conversion | SIL OFL 1.1 / Bitstream Vera-derived |
 | Ollama (runs natively on the host, not distributed with this repository) | Local model server | MIT (verified from the upstream repository) |
 | BAAI bge-m3 (downloaded by the user through Ollama, not distributed with this repository) | Multilingual embedding model, 1024 dimensions | MIT (verified from the model card) |
+| intfloat multilingual-e5-large (evaluation only; downloaded from Hugging Face, not distributed) | Bake-off candidate embedder | MIT (verified from the model card) |
+| Omartificial-Intelligence-Space Arabic-Triplet-Matryoshka-V2 (evaluation only; not distributed) | Bake-off candidate, Arabic-focused embedder, 768 dimensions | Apache-2.0 (verified from the model card) |
+| sentence-transformers, PyTorch, Transformers (isolated evaluation environment outside the repository only) | Serving the bake-off candidates | Apache-2.0 / BSD-3-Clause / Apache-2.0 |
 
 Licenses of the remaining AI models (the other embedding candidates in the stage 7 bake-off, Qwen3, Llama, the reranker) will be recorded here when they are adopted in stages 7 and 8. Verify each license before adopting.

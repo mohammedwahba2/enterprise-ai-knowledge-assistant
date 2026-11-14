@@ -107,7 +107,7 @@ export function RetrievalDebug() {
                           <bdi>{h.collection_name}</bdi> · {t("pages", { from: h.page_start, to: h.page_end })} · {h.lang.toUpperCase()}
                           {h.heading_path ? <> · <bdi>{h.heading_path}</bdi></> : null}
                         </small>
-                        <button type="button" className="linklike" onClick={() => setOpen(open === h.chunk_id ? null : h.chunk_id)}>
+                        <button type="button" className="linklike rd-toggle" onClick={() => setOpen(open === h.chunk_id ? null : h.chunk_id)}>
                           {open === h.chunk_id ? t("hideText") : t("showText")}
                         </button>
                         {open === h.chunk_id && <p className="rd-text" dir="auto">{h.content}</p>}

@@ -65,7 +65,12 @@ class Settings(BaseSettings):
     # --- retrieval (stage 7) ---
     query_embedder_timeout_seconds: float = Field(default=8.0, ge=1.0)
     retrieval_candidates: int = Field(default=40, ge=5, le=200)  # per leg, before fusion
-    rrf_k: int = Field(default=60, ge=1)
+    # Fusion parameters chosen by the stage 7 grid (docs/eval/stage7-retrieval.md): the textbook
+    # k=60 is nearly flat across ranks, so lexical consensus drowned out the vector ranking and
+    # cross-language retrieval collapsed (Arabic->English recall@5 0.00); a small k with the vector
+    # leg weighted 2x keeps same-language gains and cross-language retrieval.
+    rrf_k: int = Field(default=3, ge=1)
+    rrf_vector_weight: int = Field(default=2, ge=1, le=10)
     hnsw_ef_search: int = Field(default=100, ge=10, le=1000)
     hnsw_max_scan: int = Field(default=20000, ge=1000)
     search_rate_per_minute: int = Field(default=60, ge=1)

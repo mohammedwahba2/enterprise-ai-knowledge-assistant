@@ -51,7 +51,7 @@ class VectorRetriever:
 
 class FtsRetriever:
     """Any-word full-text match ranked by ts_rank_cd. `config` is 'language' (per-chunk language
-    config via content_tsv, query run through both) or 'simple' (content_tsv_simple)."""
+    config via content_tsv, query run through both) or 'simple' (computed inline)."""
 
     def __init__(self, sessions: async_sessionmaker[AsyncSession], config: str, k: int = 10):
         if config not in ("language", "simple"):
@@ -64,7 +64,8 @@ class FtsRetriever:
             return []
         query = " | ".join(words)
         if self.config == "simple":
-            column, tsq = "c.content_tsv_simple", "to_tsquery('simple', :q)"
+            # computed inline: the product keeps no `simple` column (docs/eval/stage7-retrieval.md)
+            column, tsq = "to_tsvector('simple', c.content_search)", "to_tsquery('simple', :q)"
         else:
             column = "c.content_tsv"
             tsq = "(to_tsquery('arabic', :q) || to_tsquery('english', :q))"

@@ -176,6 +176,18 @@ def hybrid(
     return retrieve
 
 
+def cached(retriever: Retriever) -> Retriever:
+    """Memoize a retriever per question id, so a parameter grid re-fuses without re-querying."""
+    memo: dict[str, list[Retrieved]] = {}
+
+    async def retrieve(question: Question) -> list[Retrieved]:
+        if question.id not in memo:
+            memo[question.id] = list(await retriever(question))
+        return memo[question.id]
+
+    return retrieve
+
+
 def routed(by_language: dict[str, Retriever], default: Retriever) -> Retriever:
     """Pick a retriever by the QUESTION's language (Arabic vs everything else)."""
 

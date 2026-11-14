@@ -7,6 +7,7 @@ real bge-m3 model and writes `docs/eval/stage7-retrieval.md`; `EVAL_E5_URL` / `E
 """
 
 import os
+import re
 from datetime import date
 from pathlib import Path
 
@@ -23,6 +24,16 @@ from tests.pipeline_helpers import worker_sessions
 from tests.tenancy_helpers import Person, World
 from tests.test_pipeline import setup
 
+# The questions that existed at stage 6, before the fusion grid was run: the fusion parameters were
+# chosen by looking at these ("dev"); everything authored later is the held-out "test" set.
+STAGE6_IDS = frozenset(
+    q.id
+    for q in load_questions()
+    if re.fullmatch(
+        r"(en|ar)-(0[1-9]|1[0-2])|x-(ar-en|en-ar)-0[1-8]|mix-.*|dg-.*|var-.*|restr-.*|none-0[1-6]",
+        q.id,
+    )
+)
 REPORT = Path(__file__).resolve().parents[2] / "docs" / "eval" / "stage7-retrieval.md"
 
 
@@ -45,7 +56,7 @@ async def test_every_configuration_runs_and_the_product_path_matches_the_hybrid(
     await ingest_corpus(world, owner, oid, cid, embedder)
     engine, sessions = worker_sessions(world.worker_db_url)
     try:
-        reports = await run_ablations(
+        reports, _ = await run_ablations(
             sessions,
             build_corpus(),
             load_questions(),
@@ -55,12 +66,15 @@ async def test_every_configuration_runs_and_the_product_path_matches_the_hybrid(
     finally:
         await engine.dispose()
     by_name = {r.name: r for r in reports}
-    assert len(reports) == 10
+    assert len(reports) == 10 + 20
     product = by_name[next(n for n in by_name if n.startswith("PRODUCT"))]
-    in_memory = by_name["hybrid RRF, fake + full text (language-aware)"]
+    in_memory = by_name["FUSION GRID k=3 vector-weight=2"]
     # same legs, same fusion, same data: the product path must score the same as the harness model
-    for k in (1, 5, 10):
+    # recall@1 is excluded on purpose: equal fused scores are ordered by document name in the
+    # harness and by id in the product, which can swap two tied chunks at rank 1 and nowhere else
+    for k in (3, 5, 10):
         assert product.overall.recall[k] == pytest.approx(in_memory.overall.recall[k], abs=0.03)
+    assert product.overall.mrr == pytest.approx(in_memory.overall.mrr, abs=0.05)
     assert product.digit_consistency == 1.0
     summary = render_summary(reports)
     assert (
@@ -101,10 +115,10 @@ async def test_live_stage7_evaluation_report(world: World) -> None:
     ]  # fmt: skip
     engine, sessions = worker_sessions(world.worker_db_url)
     try:
-        reports = await run_ablations(
+        reports, split_table = await run_ablations(
             sessions, build_corpus(), load_questions(),
             primary=EmbeddingModel("bge-m3", ollama, "bge-m3", 1024),
-            candidates=candidates, api_post=api_search(owner, oid),
+            candidates=candidates, api_post=api_search(owner, oid), dev_ids=STAGE6_IDS,
         )  # fmt: skip
     finally:
         await engine.dispose()
@@ -128,7 +142,9 @@ async def test_live_stage7_evaluation_report(world: World) -> None:
         + render_summary(reports)
         + "\n## Gates (initial, PLAN section 11.5) for the product path\n\n"
         + gates
-        + "\n\n## Detail per configuration\n\n"
+        + "\n\n## Fusion cell chosen on the stage 6 questions (dev), checked on the new ones (test)\n\n"
+        + split_table
+        + "\n## Detail per configuration\n\n"
         + render_markdown(reports),
         encoding="utf-8",
     )

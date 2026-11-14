@@ -323,7 +323,7 @@ async def test_the_api_role_can_read_chunks_only_through_rls_and_never_write_the
         assert await s.scalar(text("select count(*) from chunks")) == 0
 
 
-async def test_vector_and_full_text_indexes_are_usable(world: World) -> None:
+async def test_vector_and_language_aware_text_indexes_are_usable(world: World) -> None:
     """With sequential scans disabled the planner must be able to use each index (tiny tables
     otherwise prefer a scan, which would hide a missing or unusable index)."""
     owner, oid, cid = await setup(world)
@@ -350,19 +350,17 @@ async def test_vector_and_full_text_indexes_are_usable(world: World) -> None:
                     )
                 )
             )
-            simple = "\n".join(
-                r[0]
-                for r in await s.execute(
-                    text(
-                        "explain select id from chunks where content_tsv_simple @@ to_tsquery('simple', 'leave')"
-                    )
-                )
-            )
     finally:
         await engine.dispose()
     assert "ix_chunks_embedding_hnsw" in vec
     assert "ix_chunks_content_tsv" in fts
-    assert "ix_chunks_content_tsv_simple" in simple
+    # the `simple`-config column was dropped (migration 0007): it did not earn its place
+    cols = await wsql(
+        world,
+        "select count(*) from information_schema.columns "
+        "where table_name = 'chunks' and column_name = 'content_tsv_simple'",
+    )
+    assert cols[0][0] == 0
 
 
 # ------------------------------------------------------------------ lexical leg
@@ -391,7 +389,6 @@ async def test_arabic_full_text_matches_across_spelling_variants_and_digits(
     assert await hits("الاجازة") > 0
     assert await hits("25") > 0  # Western digits find the Arabic-Indic "٢٥"
     assert await hits("٢٥") > 0  # and Arabic-Indic digits in the query normalize the same way
-    assert await hits("الاجازة", "simple", "content_tsv_simple") > 0
 
 
 async def test_mixed_language_chunks_are_indexed_for_both_languages(world: World) -> None:
