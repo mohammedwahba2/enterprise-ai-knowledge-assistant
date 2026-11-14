@@ -11,6 +11,7 @@ from sqlalchemy.pool import NullPool
 
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging
+from app.db import registry  # noqa: F401  (complete ORM metadata in the worker process)
 from app.db.base import to_async_url
 from app.infrastructure.storage.s3 import ObjectStore, S3ObjectStore
 from app.modules.processing import sweeper
