@@ -241,7 +241,14 @@ async def test_conversations_are_private_even_from_administrators(world: World) 
         assert cid not in [
             c["id"] for c in (await other.get(f"/orgs/{t.oid}/conversations")).json()
         ]
-    # and the database agrees: row-level security hides the rows from anyone else
+
+
+async def test_row_level_security_alone_hides_conversations_from_everyone_else(
+    world: World,
+) -> None:
+    t, _, cid = await setup(world)
+    viewer, admin = t.people["viewer"], t.people["admin"]
+    await ask(viewer, t.oid, cid)
     async with world.scoped_db(t.oid, admin.user_id) as s:
         assert await s.scalar(text("select count(*) from messages")) == 0
         assert await s.scalar(text("select count(*) from conversations")) == 0
