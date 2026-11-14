@@ -20,7 +20,7 @@ const page = (n: number, state: PageInfo["extraction_state"] = "text"): PageInfo
   char_count: state === "text" ? 100 : 0,
 });
 
-const STATUSES = ["uploaded", "parsing", "chunking", "ready", "ready_partial", "unsupported_scanned", "unsupported_garbled", "failed"];
+const STATUSES = ["uploaded", "parsing", "chunking", "embedding", "ready", "ready_partial", "unsupported_scanned", "unsupported_garbled", "failed"];
 
 describe("unreadable page ranges", () => {
   it("collapses consecutive unusable pages into ranges", () => {

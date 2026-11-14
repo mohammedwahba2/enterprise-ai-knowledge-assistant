@@ -128,12 +128,13 @@
     "status": {
       "uploaded": "Queued",
       "parsing": "Reading",
-      "chunking": "Indexing",
+      "chunking": "Preparing",
       "ready": "Ready",
       "ready_partial": "Partly readable",
       "unsupported_scanned": "Scanned, no text",
       "unsupported_garbled": "Unreadable text",
-      "failed": "Couldn’t process"
+      "failed": "Couldn’t process",
+      "embedding": "Indexing"
     },
     "emptyTitle": "No documents yet",
     "emptyEditor": "Drag files here or use Upload. PDF, Word, PowerPoint, text and Markdown files up to 50 MB.",
@@ -201,8 +202,11 @@
         "ready_partial": "Some pages are unreadable. The rest is searchable.",
         "unsupported_scanned": "Scanned, no text layer. Excluded from answers.",
         "unsupported_garbled": "The text can’t be read reliably. Excluded from answers.",
-        "failed": "Processing failed. You can try again."
-      }
+        "failed": "Processing failed. You can try again.",
+        "embedding": "Indexing the document."
+      },
+      "EMBEDDER_UNAVAILABLE": "The indexing service was unavailable. It will be retried automatically; you can also try again.",
+      "EMBEDDING_FAILED": "The indexing model couldn’t process this document. Ask an administrator to check the setup."
     }
   }
 }

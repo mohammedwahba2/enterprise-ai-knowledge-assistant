@@ -97,6 +97,12 @@ services:
       S3_SECRET_KEY: ${S3_SECRET_KEY:?run ./scripts/init-env.sh}
       S3_BUCKET: ${S3_BUCKET:-knowledge-documents}
       JWT_SECRET: ${JWT_SECRET:?run ./scripts/init-env.sh}
+      # Embeddings come from Ollama running natively on the host (PLAN section 7): the container
+      # reaches it through host.docker.internal. Ollama listens on loopback only; Docker Desktop
+      # forwards host.docker.internal to it.
+      EMBEDDER_URL: ${EMBEDDER_URL:-http://host.docker.internal:11434}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-bge-m3}
+    extra_hosts: ["host.docker.internal:host-gateway"]
     tmpfs: ["/tmp:size=1g,mode=1777"]
     mem_limit: 3g
     pids_limit: 512

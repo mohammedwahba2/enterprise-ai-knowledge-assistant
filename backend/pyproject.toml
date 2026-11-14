@@ -59,7 +59,7 @@ select = ["E", "F", "I", "B", "UP", "S", "ASYNC", "SIM", "RUF"]
 strict = true
 python_version = "3.11"
 plugins = []
-files = ["app", "tests"]
+files = ["app", "tests", "evals"]
 
 [[tool.mypy.overrides]]
 module = ["asyncpg", "asyncpg.*", "boto3", "boto3.*", "botocore", "botocore.*", "pypdfium2", "pypdfium2.*", "celery", "celery.*", "kombu", "kombu.*"]

@@ -15,5 +15,12 @@ The project is licensed under Apache-2.0 (see `LICENSE`). This file tracks notab
 | Redis 7 (image) | Cache/broker | BSD-3-Clause |
 | SeaweedFS (image) | S3-compatible object storage | Apache-2.0 |
 | Caddy (image) | Reverse proxy | Apache-2.0 |
+| Celery, kombu | Background worker | BSD-3-Clause |
+| pypdfium2 / PDFium | PDF text extraction (chosen over AGPL PyMuPDF) | Apache-2.0 or BSD-3-Clause / BSD-3-Clause |
+| pypdf, Hypothesis (dev only) | Test fixtures and property tests | BSD-3-Clause / MPL-2.0 |
+| LibreOffice (worker image only, run as a separate process, not linked) | DOCX/PPTX to PDF conversion | MPL-2.0 |
+| Noto fonts, DejaVu fonts (worker image) | Arabic and Latin glyph coverage for conversion | SIL OFL 1.1 / Bitstream Vera-derived |
+| Ollama (runs natively on the host, not distributed with this repository) | Local model server | MIT (verified from the upstream repository) |
+| BAAI bge-m3 (downloaded by the user through Ollama, not distributed with this repository) | Multilingual embedding model, 1024 dimensions | MIT (verified from the model card) |
 
-Licenses of AI models (bge-m3, Qwen3, Llama, Arabic-focused embedder) will be recorded here when they are adopted in stages 6 and 8. Verify each license before adopting.
+Licenses of the remaining AI models (the other embedding candidates in the stage 7 bake-off, Qwen3, Llama, the reranker) will be recorded here when they are adopted in stages 7 and 8. Verify each license before adopting.

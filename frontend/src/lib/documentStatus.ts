@@ -7,6 +7,7 @@ const TONES: Record<string, Tone> = {
   uploaded: "busy",
   parsing: "busy",
   chunking: "busy",
+  embedding: "busy",
   ready: "ok",
   ready_partial: "partial",
   unsupported_scanned: "bad",
@@ -14,7 +15,7 @@ const TONES: Record<string, Tone> = {
   failed: "bad",
 };
 
-export const PROCESSING = ["uploaded", "parsing", "chunking"] as const;
+export const PROCESSING = ["uploaded", "parsing", "chunking", "embedding"] as const;
 export const NEEDS_ATTENTION = ["failed", "unsupported_scanned", "unsupported_garbled", "ready_partial"] as const;
 
 export const toneOf = (status: string): Tone => TONES[status] ?? "busy";
@@ -35,6 +36,8 @@ export const REASON_CODES = [
   "PROCESSING_CRASHED",
   "FILE_MISSING",
   "STORAGE_UNAVAILABLE",
+  "EMBEDDER_UNAVAILABLE",
+  "EMBEDDING_FAILED",
 ] as const;
 
 export const isReasonCode = (code: string | null): code is (typeof REASON_CODES)[number] =>

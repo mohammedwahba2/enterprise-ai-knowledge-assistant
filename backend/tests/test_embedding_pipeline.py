@@ -416,3 +416,11 @@ async def test_mixed_language_chunks_are_indexed_for_both_languages(world: World
     # The Arabic side is covered by the long-Arabic test above: this short synthetic line is
     # extracted in visual order (the documented short-line limit), which would make it flaky here.
     assert await hits("arabic", "fleet") > 0  # Latin words stay findable under the Arabic config
+
+
+def test_embedding_text_puts_title_and_heading_trail_before_the_content() -> None:
+    assert embedding_text("Leave Policy", "4 Leave > 4.4 Carry-over", "Five days.") == (
+        "Leave Policy > 4 Leave > 4.4 Carry-over\nFive days."
+    )
+    assert embedding_text("Leave Policy", "", "Five days.") == "Leave Policy\nFive days."
+    assert embedding_text("سياسة الإجازة", "", "خمسة أيام") == "سياسة الإجازة\nخمسة أيام"
