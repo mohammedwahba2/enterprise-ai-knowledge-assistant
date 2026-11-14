@@ -9,7 +9,8 @@
     "attention": "Needs attention",
     "collections": "Collections",
     "primary": "Primary",
-    "comingSoon": "Not available yet"
+    "comingSoon": "Not available yet",
+    "attentionCount": "{count} documents need attention"
   },
   "Locale": {
     "switchTo": "العربية",
@@ -120,10 +121,19 @@
       "collection": "Collection",
       "size": "Size",
       "status": "Status",
-      "uploaded": "Uploaded"
+      "uploaded": "Uploaded",
+      "language": "Lang",
+      "pages": "Pages"
     },
     "status": {
-      "uploaded": "Uploaded"
+      "uploaded": "Queued",
+      "parsing": "Reading",
+      "chunking": "Indexing",
+      "ready": "Ready",
+      "ready_partial": "Partly readable",
+      "unsupported_scanned": "Scanned, no text",
+      "unsupported_garbled": "Unreadable text",
+      "failed": "Couldn’t process"
     },
     "emptyTitle": "No documents yet",
     "emptyEditor": "Drag files here or use Upload. PDF, Word, PowerPoint, text and Markdown files up to 50 MB.",
@@ -157,6 +167,42 @@
       "mb": "MB",
       "gb": "GB"
     },
-    "loadError": "Couldn't load the library."
+    "loadError": "Couldn't load the library.",
+    "language": {
+      "en": "EN",
+      "ar": "AR",
+      "mixed": "AR/EN"
+    },
+    "attention": {
+      "title": "{count, plural, one {Needs attention · 1 document} other {Needs attention · {count} documents}}",
+      "reprocess": "Try again",
+      "reprocessing": "Queued…"
+    },
+    "reason": {
+      "partialPages": "Pages {ranges} unreadable; {readable} of {total} pages searchable.",
+      "scanned": "Scanned, no text layer ({pages, plural, one {1 page} other {{pages} pages}}). Excluded from answers; OCR isn’t enabled.",
+      "ENCRYPTED": "Password-protected. Remove the password and upload it again.",
+      "CORRUPT": "The file is damaged and couldn’t be opened.",
+      "CONVERSION_FAILED": "Couldn’t convert the document to read its pages.",
+      "EMPTY_DOCUMENT": "No readable content was found.",
+      "TOO_MANY_PAGES": "Too many pages to process.",
+      "NO_TEXT_LAYER": "Scanned, no text layer. Excluded from answers; OCR isn’t enabled.",
+      "GARBLED_TEXT": "The text can’t be read reliably (broken font encoding). Excluded from answers.",
+      "PARTIAL_TEXT": "Some pages are unreadable. The rest is searchable.",
+      "PROCESSING_ERROR": "Processing failed unexpectedly. You can try again.",
+      "PROCESSING_CRASHED": "Processing stopped repeatedly. You can try again later.",
+      "FILE_MISSING": "The stored file is missing. Upload it again.",
+      "STORAGE_UNAVAILABLE": "Storage was unavailable. You can try again.",
+      "fallback": {
+        "uploaded": "Waiting to be processed.",
+        "parsing": "Reading the document.",
+        "chunking": "Indexing the document.",
+        "ready": "Ready.",
+        "ready_partial": "Some pages are unreadable. The rest is searchable.",
+        "unsupported_scanned": "Scanned, no text layer. Excluded from answers.",
+        "unsupported_garbled": "The text can’t be read reliably. Excluded from answers.",
+        "failed": "Processing failed. You can try again."
+      }
+    }
   }
 }

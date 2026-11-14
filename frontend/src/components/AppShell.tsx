@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
+import { DocumentLiveProvider, useDocumentLive } from "@/lib/documentLive";
 import { Icon, type IconName } from "./Icon";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { useCurrentOrg } from "./OrgGate";
@@ -19,15 +20,28 @@ const ITEMS: Item[] = [
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const org = useCurrentOrg();
+  return (
+    <DocumentLiveProvider orgId={org.id}>
+      <Shell>{children}</Shell>
+    </DocumentLiveProvider>
+  );
+}
+
+function Shell({ children }: { children: ReactNode }) {
   const t = useTranslations();
   const org = useCurrentOrg();
+  const { summary } = useDocumentLive();
+  const attention = summary?.needs_attention ?? 0;
   const pathname = usePathname();
   const current = pathname.startsWith(`/${org.slug}/library`) ? "library" : "ask";
 
-  // Ask and Library exist so far; other destinations are rendered disabled, not as dead links.
+  // Ask, Library and Needs attention exist so far; other destinations are rendered disabled, not as
+  // dead links. Needs attention is the Library's attention panel.
   const hrefs: Partial<Record<Item["key"], string>> = {
     ask: `/${org.slug}`,
     library: `/${org.slug}/library`,
+    attention: `/${org.slug}/library#attention`,
   };
   const renderItem = (item: Item) =>
     hrefs[item.key] ? (
@@ -39,6 +53,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       >
         <Icon name={item.icon} />
         <span className="label">{t(`Nav.${item.key}`)}</span>
+        {item.key === "attention" && attention > 0 && (
+          <span className="nav-badge" aria-label={t("Nav.attentionCount", { count: attention })}>
+            {attention}
+          </span>
+        )}
       </Link>
     ) : (
       <span key={item.key} className="nav-item" aria-disabled="true" title={t("Nav.comingSoon")}>

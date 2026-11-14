@@ -12,8 +12,11 @@ import {
 import { describeError, type ErrorView } from "@/lib/errors";
 import { ACCEPT_ATTR, formatBytes, preflight } from "@/lib/files";
 import { formatDate, type Locale } from "@/i18n/locales";
+import { useDocumentLive } from "@/lib/documentLive";
+import { isProcessing, NEEDS_ATTENTION, toneOf } from "@/lib/documentStatus";
 import { useCurrentOrg } from "../OrgGate";
 import { FormError } from "../auth/AuthForm";
+import { AttentionPanel } from "./AttentionPanel";
 
 type Outcome = { filename: string; kind: "created" | "duplicate" | "rejected"; reason?: string };
 
@@ -37,6 +40,9 @@ export function LibraryPage() {
   const [outcomes, setOutcomes] = useState<Outcome[]>([]);
   const [dragging, setDragging] = useState(false);
   const [confirming, setConfirming] = useState<string | null>(null);
+  const [attention, setAttention] = useState<DocumentItem[]>([]);
+  const [reprocessing, setReprocessing] = useState<ReadonlySet<string>>(new Set());
+  const live = useDocumentLive();
 
   const units = {
     b: t("units.b"),
@@ -64,6 +70,65 @@ export function LibraryPage() {
     },
     [org.id, filter, debounced],
   );
+
+  const loadAttention = useCallback(async () => {
+    try {
+      const pages = await Promise.all(
+        NEEDS_ATTENTION.map((status) => documentsApi.list(org.id, { status, limit: 20 })),
+      );
+      const merged = pages.flatMap((p) => p.items).sort((a, b) => b.created_at.localeCompare(a.created_at));
+      setAttention(merged);
+    } catch {
+      /* the panel is secondary; the table still shows every status */
+    }
+  }, [org.id]);
+
+  // Keep the table and the attention panel current from worker progress events (or polling).
+  const loadRef = useRef(load);
+  const loadAttentionRef = useRef(loadAttention);
+  useEffect(() => {
+    loadRef.current = load;
+    loadAttentionRef.current = loadAttention;
+  }, [load, loadAttention]);
+  const itemsRef = useRef(items);
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const reload = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        void loadRef.current();
+        void loadAttentionRef.current();
+      }, 250);
+    };
+    const off = live.subscribe((event) => {
+      if (event === null) {
+        // Polling mode: only refetch while something is still in flight.
+        if (itemsRef.current.some((d) => isProcessing(d.status))) reload();
+        return;
+      }
+      const known = itemsRef.current.some((d) => d.id === event.document_id);
+      if (known) {
+        setItems((prev) =>
+          prev.map((d) => (d.id === event.document_id ? { ...d, status: event.status, error_code: event.error_code } : d)),
+        );
+      }
+      // Page counts, language and unreadable ranges arrive with the final state: refetch then.
+      if (!known || !isProcessing(event.status)) reload();
+    });
+    return () => {
+      off();
+      if (timer) clearTimeout(timer);
+    };
+  }, [live]);
+
+  useEffect(() => {
+    // Org-wide attention list: an external system (the API) filling state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadAttention();
+  }, [loadAttention]);
 
   useEffect(() => {
     const id = setTimeout(() => setDebounced(query), 300);
@@ -123,6 +188,8 @@ export function LibraryPage() {
       setOutcomes(next);
       setLoading(true);
       void load();
+      void loadAttention();
+      live.refresh();
       void collectionsApi.list(org.id).then(setCollections);
     }
   }
@@ -132,9 +199,29 @@ export function LibraryPage() {
     try {
       await documentsApi.remove(org.id, doc.id);
       setItems((prev) => prev.filter((d) => d.id !== doc.id));
+      setAttention((prev) => prev.filter((d) => d.id !== doc.id));
+      live.refresh();
       void collectionsApi.list(org.id).then(setCollections);
     } catch (e) {
       setError(describeError(e));
+    }
+  }
+
+  async function reprocess(doc: DocumentItem) {
+    setReprocessing((prev) => new Set(prev).add(doc.id));
+    try {
+      await documentsApi.reprocess(org.id, doc.id);
+      setItems((prev) => prev.map((d) => (d.id === doc.id ? { ...d, status: "uploaded", error_code: null } : d)));
+      setAttention((prev) => prev.filter((d) => d.id !== doc.id));
+      live.refresh();
+    } catch (e) {
+      setError(describeError(e));
+    } finally {
+      setReprocessing((prev) => {
+        const next = new Set(prev);
+        next.delete(doc.id);
+        return next;
+      });
     }
   }
 
@@ -213,6 +300,15 @@ export function LibraryPage() {
         </div>
       )}
 
+      <AttentionPanel
+        orgId={org.id}
+        items={attention}
+        canWrite={canWrite}
+        busy={reprocessing}
+        onReprocess={(d) => void reprocess(d)}
+        onDelete={(d) => void remove(d)}
+      />
+
       <div className="filters">
         <button type="button" className={`f${filter === "" ? " on" : ""}`} onClick={() => setFilter("")}>
           {t("allCollections")}
@@ -248,6 +344,8 @@ export function LibraryPage() {
               <tr>
                 <th>{t("columns.document")}</th>
                 <th className="hm">{t("columns.collection")}</th>
+                <th className="hm">{t("columns.language")}</th>
+                <th className="n hm">{t("columns.pages")}</th>
                 <th className="n hm">{t("columns.size")}</th>
                 <th>{t("columns.status")}</th>
                 <th className="n hm">{t("columns.uploaded")}</th>
@@ -258,7 +356,7 @@ export function LibraryPage() {
               {items.map((d) => {
                 const col = collections.find((c) => c.id === d.collection_id);
                 return (
-                  <tr key={d.id}>
+                  <tr key={d.id} className={NEEDS_ATTENTION.some((s) => s === d.status) ? "attn-row" : undefined}>
                     <td className="t">
                       <b><bdi>{d.title}</bdi></b>
                       <small><bdi>{d.original_filename}</bdi></small>
@@ -267,9 +365,17 @@ export function LibraryPage() {
                       <bdi>{d.collection_name}</bdi>
                       {col?.visibility === "restricted" && <LockIcon label={t("restricted")} />}
                     </td>
+                    <td className="hm">
+                      {d.language === "ar" || d.language === "en" ? (
+                        <span className="lg">{t(`language.${d.language}`)}</span>
+                      ) : d.language === "mixed" ? (
+                        <span className="lg">{t("language.mixed")}</span>
+                      ) : null}
+                    </td>
+                    <td className="n hm">{d.page_count ?? ""}</td>
                     <td className="n hm">{formatBytes(d.size_bytes, locale, units)}</td>
                     <td>
-                      <span className="st muted">{t(`status.${d.status}`)}</span>
+                      <span className={`st ${toneOf(d.status)}`}>{t(`status.${d.status}`)}</span>
                     </td>
                     <td className="n hm">{formatDate(new Date(d.created_at), locale)}</td>
                     <td className="actions">

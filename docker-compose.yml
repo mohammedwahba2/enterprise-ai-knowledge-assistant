@@ -29,13 +29,14 @@ services:
       retries: 5
 
   migrate:
-    build: ./backend
+    build: { context: ./backend, target: runtime }
     command: ["alembic", "upgrade", "head"]
     restart: "no"
     environment:
       # Owner credentials: only the migration uses them (it creates tables, policies and the app role).
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       APP_DB_PASSWORD: ${APP_DB_PASSWORD:?run ./scripts/init-env.sh}
+      WORKER_DB_PASSWORD: ${WORKER_DB_PASSWORD:?run ./scripts/init-env.sh}
     depends_on:
       postgres: { condition: service_healthy }
 
@@ -52,7 +53,7 @@ services:
 
   api:
     <<: *hardening
-    build: ./backend
+    build: { context: ./backend, target: runtime }
     environment:
       APP_ORIGIN: http://localhost:${HTTP_PORT:-8080}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
@@ -79,6 +80,46 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # Background processing: parses documents (untrusted input, native code, LibreOffice) away from the
+  # API, as the restricted `worker_rw` database role.
+  worker:
+    <<: *hardening
+    build: { context: ./backend, target: worker }
+    environment: &worker-env
+      APP_ENV: ${APP_ENV:-dev}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_JSON: ${LOG_JSON:-true}
+      WORKER_DATABASE_URL: postgresql://worker_rw:${WORKER_DB_PASSWORD:?run ./scripts/init-env.sh}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      S3_ENDPOINT: http://objectstore:8333
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?run ./scripts/init-env.sh}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?run ./scripts/init-env.sh}
+      S3_BUCKET: ${S3_BUCKET:-knowledge-documents}
+      JWT_SECRET: ${JWT_SECRET:?run ./scripts/init-env.sh}
+    tmpfs: ["/tmp:size=1g,mode=1777"]
+    mem_limit: 3g
+    pids_limit: 512
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+      objectstore: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.worker.celery_app inspect ping -d celery@$$HOSTNAME --timeout 5 | grep -q pong"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  # Periodic housekeeping (stuck documents, purged objects, orphan workspace files).
+  beat:
+    <<: *hardening
+    build: { context: ./backend, target: worker }
+    command: ["celery", "-A", "app.worker.celery_app", "beat", "--loglevel=INFO", "--schedule=/tmp/celerybeat-schedule"]
+    environment: *worker-env
+    tmpfs: ["/tmp:size=16m,mode=1777"]
+    depends_on:
+      redis: { condition: service_healthy }
 
   postgres:
     <<: *hardening

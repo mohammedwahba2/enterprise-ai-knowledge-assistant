@@ -194,11 +194,25 @@ export type DocumentItem = {
   status: string;
   error_code: string | null;
   page_count: number | null;
+  language: string | null;
+  /** Count of pages per extraction state, e.g. `{ text: 48, image_only: 12 }`. */
+  page_summary: Record<string, number> | null;
   uploaded_by_name: string | null;
   created_at: string;
 };
 
 export type DocumentPage = { items: DocumentItem[]; next_cursor: string | null };
+
+export type PageInfo = {
+  page_number: number;
+  extraction_state: "text" | "image_only" | "garbled";
+  char_count: number;
+};
+
+export type StatusSummary = { total: number; by_status: Record<string, number>; needs_attention: number };
+
+/** One progress event pushed by the worker (relayed through the SSE endpoint). */
+export type DocumentEvent = { document_id: string; status: string; error_code: string | null };
 
 export type UploadResult = {
   filename: string;
@@ -212,9 +226,13 @@ export const collections = {
 };
 
 export const documents = {
-  list: (orgId: string, p: { collection_id?: string; q?: string; cursor?: string | null; limit?: number } = {}) => {
+  list: (
+    orgId: string,
+    p: { collection_id?: string; q?: string; status?: string; cursor?: string | null; limit?: number } = {},
+  ) => {
     const qs = new URLSearchParams();
     if (p.collection_id) qs.set("collection_id", p.collection_id);
+    if (p.status) qs.set("status", p.status);
     if (p.q?.trim()) qs.set("q", p.q.trim());
     if (p.cursor) qs.set("cursor", p.cursor);
     qs.set("limit", String(p.limit ?? 50));
@@ -227,6 +245,12 @@ export const documents = {
     return request<UploadResult[]>(`/orgs/${orgId}/documents`, { method: "POST", body });
   },
   remove: (orgId: string, id: string) => request<void>(`/orgs/${orgId}/documents/${id}`, { method: "DELETE" }),
+  summary: (orgId: string) => request<StatusSummary>(`/orgs/${orgId}/documents/summary`),
+  pages: (orgId: string, id: string) => request<PageInfo[]>(`/orgs/${orgId}/documents/${id}/pages`),
+  reprocess: (orgId: string, id: string) =>
+    request<{ status: string }>(`/orgs/${orgId}/documents/${id}/reprocess`, { method: "POST" }),
+  /** Server-sent events; the API re-authorizes every event for this caller. */
+  eventsUrl: (orgId: string) => `${BASE}/orgs/${orgId}/documents/events`,
   /** Same-origin URL; the API re-checks the caller's access on every request. */
   fileUrl: (orgId: string, id: string, download = false) =>
     `${BASE}/orgs/${orgId}/documents/${id}/file${download ? "?download=true" : ""}`,

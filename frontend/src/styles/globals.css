@@ -1016,3 +1016,140 @@ li[data-kind="created"] .of-state {
     margin-inline-start: 0;
   }
 }
+
+/* ---- Document processing states (stage 5) ---- */
+.st.ok::before {
+  background: var(--accent);
+}
+
+.st.busy {
+  color: var(--ochre);
+}
+
+.st.busy::before {
+  background: var(--ochre);
+  animation: st-pulse 1.4s ease-in-out infinite;
+}
+
+.st.partial {
+  color: var(--ochre);
+}
+
+.st.partial::before {
+  background: linear-gradient(to right, var(--ochre) 50%, transparent 50%);
+  box-shadow: inset 0 0 0 1.5px var(--ochre);
+}
+
+:lang(ar) .st.partial::before {
+  background: linear-gradient(to left, var(--ochre) 50%, transparent 50%);
+}
+
+.st.bad {
+  color: var(--brick);
+}
+
+.st.bad::before {
+  background: var(--brick);
+}
+
+@keyframes st-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .st.busy::before {
+    animation: none;
+  }
+}
+
+.lg {
+  color: var(--ink-2);
+  font: 500 11px var(--font-mono);
+  letter-spacing: 0.04em;
+}
+
+.tw tr.attn-row td {
+  background: var(--ochre-wash);
+}
+
+.attn {
+  margin-block-end: 28px;
+  padding: 4px 16px;
+  border: 1px solid var(--hair);
+  border-radius: 8px;
+  background: var(--ochre-wash);
+}
+
+.attn:focus {
+  outline: none;
+}
+
+.attn h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding-block: 10px 2px;
+  color: var(--ochre);
+  font: 600 12.5px var(--font-ui);
+}
+
+.ss-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--brick);
+}
+
+.attn .it {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  padding-block: 11px;
+}
+
+.attn .it + .it {
+  border-block-start: 1px solid var(--hair);
+}
+
+.attn .it b {
+  font-weight: 500;
+}
+
+.attn .it .d {
+  flex: 1 1 260px;
+  min-width: 0;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.it-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  margin-inline-start: auto;
+}
+
+.act:disabled {
+  color: var(--ink-3);
+  cursor: default;
+  text-decoration: none;
+}
+
+.nav-badge {
+  margin-inline-start: auto;
+  padding-inline: 6px;
+  border-radius: 9px;
+  background: var(--ochre-wash);
+  color: var(--ochre);
+  font: 500 11px var(--font-mono);
+}
+
+@media (max-width: 1023px) {
+  .rail .nav-badge {
+    display: none;
+  }
+}

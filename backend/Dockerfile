@@ -20,3 +20,16 @@ ENV FORWARDED_ALLOW_IPS="*"
 USER 10001
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log", "--proxy-headers"]
+
+# Background worker: the same code plus LibreOffice (DOCX/PPTX -> PDF so page numbers match what
+# users see) and fonts with Arabic coverage. Heavier than the API image on purpose; only the
+# worker pays for it, and it never serves HTTP.
+FROM runtime AS worker
+USER root
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends libreoffice-writer libreoffice-impress \
+    fonts-noto-core fonts-noto-ui-core fonts-dejavu-core fontconfig \
+ && apt-get clean \
+ && fc-cache -f
+USER 10001
+CMD ["celery", "-A", "app.worker.celery_app", "worker", "-Q", "ingest", "--concurrency=2", "--loglevel=INFO"]
