@@ -5,13 +5,13 @@ from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 
 import structlog
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.config import Settings
 from app.infrastructure.storage.s3 import ObjectStore, StorageUnavailableError
 from app.modules.documents.models import Document
-from app.modules.processing.models import IngestionJob
+from app.modules.processing.models import Chunk, DocumentPage, IngestionJob
 from app.modules.tenancy.models import Organization
 
 _log = structlog.get_logger("sweeper")
@@ -160,6 +160,25 @@ async def purge_deleted_objects(
             purged += 1
         await s.commit()
     return purged
+
+
+async def purge_deleted_derived_data(sessions: async_sessionmaker[AsyncSession]) -> int:
+    """Remove extracted pages and chunks (text AND vectors) of soft-deleted documents.
+
+    Deleting a document must not leave its content searchable or readable in the index. The API
+    role has no access to these tables by design, so the worker does it. Retrieval must still
+    filter on `documents.deleted_at` because this runs periodically, not inside the delete request.
+    Returns the number of chunks removed.
+    """
+    async with sessions() as s:
+        deleted = select(Document.id).where(Document.deleted_at.is_not(None))
+        result = await s.execute(delete(Chunk).where(Chunk.document_id.in_(deleted)))
+        removed = getattr(result, "rowcount", 0)
+        await s.execute(delete(DocumentPage).where(DocumentPage.document_id.in_(deleted)))
+        await s.commit()
+    if removed:
+        _log.info("deleted_documents_derived_data_purged", chunks=removed)
+    return int(removed or 0)
 
 
 async def purge_orphan_prefixes(

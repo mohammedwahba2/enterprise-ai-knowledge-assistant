@@ -20,6 +20,7 @@ celery_app.conf.update(
     beat_schedule={
         "requeue-stuck-documents": {"task": "knowledge.requeue_stuck", "schedule": 60.0},
         "requeue-transient-failures": {"task": "knowledge.requeue_transient", "schedule": 120.0},
+        "reindex-stale-chunks": {"task": "knowledge.reindex_stale", "schedule": 300.0},
         "purge-deleted-objects": {"task": "knowledge.purge_deleted", "schedule": 300.0},
         "purge-orphan-prefixes": {"task": "knowledge.purge_orphans", "schedule": 3600.0},
     },

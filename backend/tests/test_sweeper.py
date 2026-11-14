@@ -183,3 +183,42 @@ async def test_the_sweeper_runs_as_the_restricted_worker_role(world: World) -> N
 def test_settings_defaults_are_sane(n: int) -> None:
     s = Settings()
     assert s.stuck_uploaded_seconds < s.stuck_running_seconds and s.max_processing_attempts >= n
+
+
+async def test_deleting_a_document_also_purges_its_pages_chunks_and_vectors(world: World) -> None:
+    from sqlalchemy import text
+
+    from tests.fake_embedder import FakeEmbedder  # noqa: F401  (process() defaults to it)
+
+    owner, oid, cid = await setup(world)
+    kept = await upload(world, owner, oid, cid, "kept")
+    gone = await upload(world, owner, oid, cid, "gone")
+    for doc in (kept, gone):
+        assert await world.process(oid, doc) == "processed"
+    engine, sessions = worker_sessions(world.worker_db_url)
+    try:
+
+        async def counts() -> dict[str, int]:
+            async with sessions() as s:
+                rows = (
+                    await s.execute(
+                        text(
+                            "select document_id::text, count(*) from chunks group by 1 "
+                            "union all select 'pages:' || document_id::text, count(*) "
+                            "from document_pages group by 1"
+                        )
+                    )
+                ).all()
+            return {k: int(v) for k, v in rows}
+
+        before = await counts()
+        assert before[gone] > 0 and before[f"pages:{gone}"] > 0
+        assert await sweeper.purge_deleted_derived_data(sessions) == 0  # nothing deleted yet
+        assert (await owner.delete(f"/orgs/{oid}/documents/{gone}")).status_code == 204
+        assert await sweeper.purge_deleted_derived_data(sessions) == before[gone]
+        after = await counts()
+        assert gone not in after and f"pages:{gone}" not in after  # content and vectors are gone
+        assert after[kept] == before[kept] and after[f"pages:{kept}"] == before[f"pages:{kept}"]
+        assert await sweeper.purge_deleted_derived_data(sessions) == 0  # idempotent
+    finally:
+        await engine.dispose()

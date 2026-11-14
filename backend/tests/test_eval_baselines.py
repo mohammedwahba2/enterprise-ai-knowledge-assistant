@@ -89,4 +89,5 @@ async def test_live_bge_m3_baseline_report(world: World) -> None:
     )
     REPORT.parent.mkdir(parents=True, exist_ok=True)
     REPORT.write_text(header + render_markdown(reports), encoding="utf-8")
-    assert reports[0].digit_consistency is not None
+    # PLAN section 11.5: the same question in any digit script must return identical results
+    assert reports[0].digit_consistency == 1.0

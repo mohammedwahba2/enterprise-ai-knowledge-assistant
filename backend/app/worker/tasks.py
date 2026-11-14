@@ -110,10 +110,11 @@ def requeue_transient_task() -> int:
 
 @celery_app.task(name="knowledge.reindex_stale")
 def reindex_stale_task(org_id: str | None = None, document_id: str | None = None) -> dict[str, Any]:
-    """Re-embed chunks not embedded by the configured model (run after changing the model).
+    """Re-embed chunks that lack a vector from the configured model.
 
-    `celery -A app.worker.celery_app call knowledge.reindex_stale` re-indexes everything;
-    pass `--args='["<org id>"]'` to limit it to one workspace.
+    Runs periodically (beat) in bounded batches, so documents that predate embeddings and a
+    changed EMBEDDING_MODEL both heal on their own. To limit a run to one workspace:
+    `celery -A app.worker.celery_app call knowledge.reindex_stale --args='["<org id>"]'`.
     """
 
     async def go(sessions: Any, _store: Any, settings: Settings) -> dict[str, Any]:
@@ -123,6 +124,7 @@ def reindex_stale_task(org_id: str | None = None, document_id: str | None = None
             settings.embedding_batch_size,
             org_id=uuid.UUID(org_id) if org_id else None,
             document_id=uuid.UUID(document_id) if document_id else None,
+            max_documents=settings.reindex_batch_documents,
         )
         return {"documents": result.documents, "chunks": result.chunks, "stopped": result.stopped}
 
@@ -132,6 +134,7 @@ def reindex_stale_task(org_id: str | None = None, document_id: str | None = None
 @celery_app.task(name="knowledge.purge_deleted")
 def purge_deleted_task() -> int:
     async def go(sessions: Any, store: Any, _settings: Settings) -> int:
+        await sweeper.purge_deleted_derived_data(sessions)
         return await sweeper.purge_deleted_objects(sessions, store)
 
     return _sweep(go)  # type: ignore[no-any-return]

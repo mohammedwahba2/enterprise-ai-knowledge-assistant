@@ -19,6 +19,8 @@ _SEPARATORS = {
     0x060C: ord(","),
 }  # decimal sep, thousands sep, Arabic comma
 _DIGIT_TABLE = {**_DIGITS, **_SEPARATORS}
+# Numbers only: digits and the Arabic decimal/thousands separators, NOT the Arabic comma.
+_NUMBER_TABLE = {**_DIGITS, 0x066B: ord("."), 0x066C: ord(",")}
 
 _ARABIC_LETTER = re.compile("[ء-يٮ-ۓۺ-ۿݐ-ݿ]")
 _LATIN_LETTER = re.compile("[A-Za-zÀ-ɏ]")
@@ -35,6 +37,16 @@ _REVERSED = {w[::-1] for w in _COMMON if w[::-1] != w}
 
 def strip_diacritics(text: str) -> str:
     return _DIACRITICS.sub("", text).replace(_TATWEEL, "")
+
+
+def fold_digits(text: str) -> str:
+    """Arabic-Indic and Persian digits (and their separators) to ASCII, nothing else.
+
+    Applied to the text sent to the embedder at index AND query time: the same question typed with
+    ٢٥ or ۲۵ or 25 must embed identically, or its ranking depends on the keyboard (measured with
+    bge-m3: all three find the answer but the top-10 order differed). Letters are left untouched.
+    """
+    return text.translate(_NUMBER_TABLE)
 
 
 def search_normalize(text: str) -> str:

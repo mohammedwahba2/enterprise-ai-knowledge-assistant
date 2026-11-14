@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.core.config import Settings
 from app.db.types import vector_literal
-from app.modules.processing.arabic import search_normalize
+from app.modules.processing.arabic import fold_digits, search_normalize
 from app.modules.processing.indexing import embedding_text, reindex_stale
 from app.modules.processing.sweeper import requeue_transient_failures
 from tests.fake_embedder import FakeEmbedder, vectorize
@@ -424,3 +424,10 @@ def test_embedding_text_puts_title_and_heading_trail_before_the_content() -> Non
     )
     assert embedding_text("Leave Policy", "", "Five days.") == "Leave Policy\nFive days."
     assert embedding_text("سياسة الإجازة", "", "خمسة أيام") == "سياسة الإجازة\nخمسة أيام"
+
+
+def test_embedding_text_folds_digit_scripts_but_leaves_letters_and_the_arabic_comma_alone() -> None:
+    assert embedding_text("دليل", "", "الحد ٢٥٬٠٠٠ ريال و ۷۵ يوماً، و٣٫٥") == (
+        "دليل\nالحد 25,000 ريال و 75 يوماً، و3.5"
+    )
+    assert fold_digits("٠١٢٣٤٥٦٧٨٩ ۰۱۲۳۴۵۶۷۸۹ abc،") == "0123456789 0123456789 abc،"

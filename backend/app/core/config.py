@@ -55,6 +55,9 @@ class Settings(BaseSettings):
     embedding_dimensions: int = Field(default=1024, ge=8, le=4096)
     embedding_batch_size: int = Field(default=16, ge=1, le=256)
     embedder_timeout_seconds: float = Field(default=120.0, ge=1.0)
+    # Chunks without a vector from the CURRENT model (documents that predate embeddings, or a
+    # changed EMBEDDING_MODEL) are re-embedded in the background, this many documents per run.
+    reindex_batch_documents: int = Field(default=25, ge=1, le=500)
 
     # --- documents ---
     max_upload_bytes: int = Field(default=50 * 1024 * 1024, ge=1024)

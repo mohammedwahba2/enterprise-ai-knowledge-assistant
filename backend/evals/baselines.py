@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.db.types import vector_literal
 from app.infrastructure.embeddings.base import Embedder
+from app.modules.processing.arabic import fold_digits
 from evals.corpus import Question
 from evals.harness import Retrieved, query_tokens
 
@@ -32,7 +33,7 @@ class VectorRetriever:
         self.sessions, self.embedder, self.k = sessions, embedder, k
 
     async def __call__(self, question: Question) -> list[Retrieved]:
-        (vector,) = await self.embedder.embed([question.text])
+        (vector,) = await self.embedder.embed([fold_digits(question.text)])
         async with self.sessions() as s:
             result = await s.execute(
                 text(

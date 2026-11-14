@@ -13,6 +13,7 @@ from app.infrastructure.embeddings.base import (
     embed_in_batches,
 )
 from app.modules.documents.models import Document
+from app.modules.processing.arabic import fold_digits
 from app.modules.processing.models import Chunk
 
 _log = structlog.get_logger("indexing")
@@ -23,7 +24,7 @@ def embedding_text(title: str, heading_path: str, content: str) -> str:
     """What the model sees for a chunk: the document title and heading trail give a short passage
     its context ("Annual leave > Carry-over") without changing the stored, quoted content."""
     head = f"{title} > {heading_path}" if heading_path else title
-    return f"{head}\n{content}"
+    return fold_digits(f"{head}\n{content}")
 
 
 def _is_stale(model: str):  # type: ignore[no-untyped-def]

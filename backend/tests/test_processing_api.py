@@ -370,6 +370,7 @@ def test_celery_is_wired_for_the_ingest_queue() -> None:
     assert set(celery_app.conf.beat_schedule) == {
         "requeue-stuck-documents",
         "requeue-transient-failures",
+        "reindex-stale-chunks",
         "purge-deleted-objects",
         "purge-orphan-prefixes",
     }
