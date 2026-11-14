@@ -8,9 +8,11 @@ from sqlalchemy.pool import NullPool
 
 from app.core.config import Settings
 from app.db.base import to_async_url
+from app.infrastructure.embeddings.base import Embedder
 from app.infrastructure.storage.s3 import S3ObjectStore
 from app.modules.processing.parsers import OfficeConverter
 from app.modules.processing.pipeline import Deps, process_document
+from tests.fake_embedder import FakeEmbedder
 
 Publish = Callable[[uuid.UUID, uuid.UUID, str, str | None], Awaitable[None]]
 
@@ -27,6 +29,7 @@ async def run_pipeline(
     *,
     converter: OfficeConverter | None = None,
     publish: Publish | None = None,
+    embedder: Embedder | None = None,
 ) -> str:
     engine = create_async_engine(to_async_url(worker_db_url), poolclass=NullPool)
     deps = Deps(
@@ -34,6 +37,8 @@ async def run_pipeline(
         S3ObjectStore(settings),
         converter or OfficeConverter("/nonexistent/soffice"),
         publish or _noop,
+        embedder or FakeEmbedder(),
+        embedding_batch_size=8,
     )
     try:
         return await process_document(deps, uuid.UUID(document_id), uuid.UUID(org_id))

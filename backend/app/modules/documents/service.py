@@ -534,7 +534,7 @@ async def delete_document(ctx: TenantCtx, store: ObjectStore, document_id: uuid.
 
 # =============================================================== processing state
 
-PROCESSING = ("uploaded", "parsing", "chunking")
+PROCESSING = ("uploaded", "parsing", "chunking", "embedding")
 NEEDS_ATTENTION = ("failed", "unsupported_scanned", "unsupported_garbled", "ready_partial")
 
 

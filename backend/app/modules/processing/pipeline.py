@@ -1,4 +1,4 @@
-"""The ingestion pipeline: download -> (convert) -> parse -> classify -> chunk -> persist.
+"""The ingestion pipeline: download -> (convert) -> parse -> classify -> chunk -> embed -> persist.
 
 Runs in the worker as the restricted `worker_rw` role. Every step is idempotent: re-running a
 document replaces its pages and chunks in one transaction, so a crash can never leave a mix.
@@ -7,7 +7,7 @@ document replaces its pages and chunks in one transaction, so a crash can never 
 import asyncio
 import tempfile
 import uuid
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -16,6 +16,12 @@ import structlog
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.infrastructure.embeddings.base import (
+    Embedder,
+    EmbedderUnavailableError,
+    EmbeddingFailedError,
+    embed_in_batches,
+)
 from app.infrastructure.storage.s3 import ObjectMissingError, ObjectStore, StorageUnavailableError
 from app.modules.documents import validation
 from app.modules.documents.models import Document
@@ -23,12 +29,13 @@ from app.modules.processing import parsers
 from app.modules.processing.arabic import clean_extracted, detect_lang
 from app.modules.processing.chunker import Page, chunk_pages
 from app.modules.processing.classify import PageState, classify_page, decide
+from app.modules.processing.indexing import embedding_text
 from app.modules.processing.models import Chunk, DocumentPage, IngestionJob
 from app.modules.processing.parsers import OfficeConverter, ProcessingError, RawPage
 
 _log = structlog.get_logger("pipeline")
 Publish = Callable[[uuid.UUID, uuid.UUID, str, str | None], Awaitable[None]]
-ACTIVE = ("uploaded", "parsing", "chunking")
+ACTIVE = ("uploaded", "parsing", "chunking", "embedding")
 # Short English descriptions stored beside the stable code (the UI translates from the code).
 OUTCOME_DETAIL = {
     "EMPTY_DOCUMENT": "The document contains no text.",
@@ -36,6 +43,8 @@ OUTCOME_DETAIL = {
     "GARBLED_TEXT": "The text could not be decoded (broken or missing font mapping).",
     "PARTIAL_TEXT": "Some pages have no readable text and are excluded.",
 }
+EMBEDDER_UNAVAILABLE_DETAIL = "The embedding service was unavailable."
+EMBEDDING_FAILED_DETAIL = "The embedding model returned an unusable answer."
 
 
 @dataclass
@@ -44,6 +53,8 @@ class Deps:
     store: ObjectStore
     converter: OfficeConverter
     publish: Publish
+    embedder: Embedder
+    embedding_batch_size: int = 16
 
 
 async def _emit(
@@ -103,6 +114,7 @@ async def process_document(deps: Deps, document_id: uuid.UUID, org_id: uuid.UUID
         doc.error_detail = None
         await s.commit()
         job_id, mime, key, collection_id = job.id, doc.mime_type, doc.storage_key, doc.collection_id
+        title = doc.title
     await _emit(deps, org_id, document_id, "parsing", None)
 
     try:
@@ -138,6 +150,33 @@ async def process_document(deps: Deps, document_id: uuid.UUID, org_id: uuid.UUID
         return "failed"
 
     pages, chunks, outcome, language = result
+    vectors: Sequence[list[float] | None] = []
+    if chunks:
+        # Embedding runs outside any database transaction (it can take minutes) and before the
+        # final write, so a document is never "ready" without vectors and never half-indexed.
+        await _set_stage(deps, document_id, job_id, org_id, "embedding")
+        try:
+            vectors = await embed_in_batches(
+                deps.embedder,
+                [embedding_text(title, c["heading_path"], c["content"]) for c in chunks],
+                deps.embedding_batch_size,
+            )
+        except EmbedderUnavailableError:
+            await _finish_failed(
+                deps,
+                document_id,
+                org_id,
+                job_id,
+                "EMBEDDER_UNAVAILABLE",
+                EMBEDDER_UNAVAILABLE_DETAIL,
+            )
+            return "failed"
+        except EmbeddingFailedError:
+            _log.error("embedding_failed", document_id=str(document_id), exc_info=True)
+            await _finish_failed(
+                deps, document_id, org_id, job_id, "EMBEDDING_FAILED", EMBEDDING_FAILED_DETAIL
+            )
+            return "failed"
     async with deps.sessions() as s:
         doc = await s.scalar(select(Document).where(Document.id == document_id).with_for_update())
         if (
@@ -153,12 +192,15 @@ async def process_document(deps: Deps, document_id: uuid.UUID, org_id: uuid.UUID
                     organization_id=org_id, document_id=doc.id, collection_id=collection_id, **page
                 )
             )
-        for chunk in chunks:
+        for chunk, vector in zip(chunks, vectors or [None] * len(chunks), strict=True):
             s.add(
                 Chunk(
-                    organization_id=org_id, document_id=doc.id, collection_id=collection_id, **chunk
+                    organization_id=org_id, document_id=doc.id, collection_id=collection_id,
+                    embedding=vector,
+                    embedding_model=deps.embedder.model if vector is not None else None,
+                    **chunk,
                 )
-            )
+            )  # fmt: skip
         doc.status = outcome.status
         doc.error_code = outcome.error_code
         doc.error_detail = OUTCOME_DETAIL.get(outcome.error_code or "")

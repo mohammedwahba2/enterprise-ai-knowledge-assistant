@@ -14,14 +14,25 @@ from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging
 from app.db import registry  # noqa: F401  (complete ORM metadata in the worker process)
 from app.db.base import to_async_url
+from app.infrastructure.embeddings.ollama import OllamaEmbedder
 from app.infrastructure.storage.s3 import ObjectStore, S3ObjectStore
 from app.modules.processing import sweeper
 from app.modules.processing.events import publish_document_event
+from app.modules.processing.indexing import reindex_stale
 from app.modules.processing.parsers import OfficeConverter
 from app.modules.processing.pipeline import Deps, process_document
 from app.worker.celery_app import celery_app
 
 PROCESS_TASK = "knowledge.process_document"
+
+
+def _embedder(settings: Settings) -> OllamaEmbedder:
+    return OllamaEmbedder(
+        settings.embedder_url,
+        settings.embedding_model,
+        settings.embedding_dimensions,
+        settings.embedder_timeout_seconds,
+    )
 
 
 @asynccontextmanager
@@ -57,7 +68,14 @@ def process_document_task(document_id: str, org_id: str) -> str:
             ) -> None:
                 await publish_document_event(redis, org, doc, status, code)
 
-            deps = Deps(sessions, store, OfficeConverter(settings.soffice_binary), publish)
+            deps = Deps(
+                sessions,
+                store,
+                OfficeConverter(settings.soffice_binary),
+                publish,
+                _embedder(settings),
+                settings.embedding_batch_size,
+            )
             return await process_document(deps, uuid.UUID(document_id), uuid.UUID(org_id))
 
     return asyncio.run(run())
@@ -78,6 +96,35 @@ def _sweep(fn: Callable[..., Awaitable[Any]]) -> Any:
 def requeue_stuck_task() -> dict[str, int]:
     async def go(sessions: Any, _store: Any, settings: Settings) -> dict[str, int]:
         return await sweeper.requeue_stuck_documents(sessions, _enqueue_via_celery, settings)
+
+    return _sweep(go)  # type: ignore[no-any-return]
+
+
+@celery_app.task(name="knowledge.requeue_transient")
+def requeue_transient_task() -> int:
+    async def go(sessions: Any, _store: Any, settings: Settings) -> int:
+        return await sweeper.requeue_transient_failures(sessions, _enqueue_via_celery, settings)
+
+    return _sweep(go)  # type: ignore[no-any-return]
+
+
+@celery_app.task(name="knowledge.reindex_stale")
+def reindex_stale_task(org_id: str | None = None, document_id: str | None = None) -> dict[str, Any]:
+    """Re-embed chunks not embedded by the configured model (run after changing the model).
+
+    `celery -A app.worker.celery_app call knowledge.reindex_stale` re-indexes everything;
+    pass `--args='["<org id>"]'` to limit it to one workspace.
+    """
+
+    async def go(sessions: Any, _store: Any, settings: Settings) -> dict[str, Any]:
+        result = await reindex_stale(
+            sessions,
+            _embedder(settings),
+            settings.embedding_batch_size,
+            org_id=uuid.UUID(org_id) if org_id else None,
+            document_id=uuid.UUID(document_id) if document_id else None,
+        )
+        return {"documents": result.documents, "chunks": result.chunks, "stopped": result.stopped}
 
     return _sweep(go)  # type: ignore[no-any-return]
 

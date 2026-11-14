@@ -45,6 +45,16 @@ class Settings(BaseSettings):
     stuck_uploaded_seconds: int = 120
     stuck_running_seconds: int = 900
     max_processing_attempts: int = 3
+    # Failures caused by a dependency being down (storage, embedder) are retried automatically.
+    transient_retry_seconds: int = 300
+    max_transient_attempts: int = 6
+
+    # --- embeddings (Ollama on the host; see docs/PLAN.md section 7) ---
+    embedder_url: str = "http://localhost:11434"
+    embedding_model: str = "bge-m3"
+    embedding_dimensions: int = Field(default=1024, ge=8, le=4096)
+    embedding_batch_size: int = Field(default=16, ge=1, le=256)
+    embedder_timeout_seconds: float = Field(default=120.0, ge=1.0)
 
     # --- documents ---
     max_upload_bytes: int = Field(default=50 * 1024 * 1024, ge=1024)

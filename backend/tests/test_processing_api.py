@@ -360,11 +360,16 @@ def test_celery_is_wired_for_the_ingest_queue() -> None:
 
     assert celery_app.conf.task_default_queue == "ingest"
     assert PROCESS_TASK in celery_app.tasks
-    assert {"knowledge.requeue_stuck", "knowledge.purge_deleted", "knowledge.purge_orphans"} <= set(
-        celery_app.tasks
-    )
+    assert {
+        "knowledge.requeue_stuck",
+        "knowledge.requeue_transient",
+        "knowledge.reindex_stale",
+        "knowledge.purge_deleted",
+        "knowledge.purge_orphans",
+    } <= set(celery_app.tasks)
     assert set(celery_app.conf.beat_schedule) == {
         "requeue-stuck-documents",
+        "requeue-transient-failures",
         "purge-deleted-objects",
         "purge-orphan-prefixes",
     }

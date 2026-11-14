@@ -144,9 +144,14 @@ async def test_a_text_pdf_becomes_ready_with_pages_chunks_and_a_job_record(world
     chunks = await chunks_of(world, doc_id)
     assert chunks and chunks[0]["p0"] == 1 and chunks[-1]["p1"] == 3
     assert "twenty five working days" in " ".join(str(c["content"]) for c in chunks)
-    assert events == [("parsing", None), ("chunking", None), ("ready", None)]  # progress, in order
+    assert events == [
+        ("parsing", None),
+        ("chunking", None),
+        ("embedding", None),
+        ("ready", None),
+    ]  # progress, in order
     jobs = await jobs_of(world, doc_id)
-    assert [(j.attempt, j.status, j.stage) for j in jobs] == [(1, "succeeded", "chunking")]
+    assert [(j.attempt, j.status, j.stage) for j in jobs] == [(1, "succeeded", "embedding")]
     assert jobs[0].finished_at is not None
 
 

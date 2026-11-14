@@ -41,7 +41,7 @@ async def requeue_stuck_documents(
                     Document.deleted_at.is_(None),
                     ((Document.status == "uploaded") & (Document.updated_at < uploaded_cutoff))
                     | (
-                        Document.status.in_(("parsing", "chunking"))
+                        Document.status.in_(("parsing", "chunking", "embedding"))
                         & (Document.updated_at < running_cutoff)
                     ),
                 )
@@ -80,6 +80,60 @@ async def requeue_stuck_documents(
     if requeued or abandoned:
         _log.warning("stuck_documents", requeued=requeued, abandoned=abandoned)
     return {"requeued": requeued, "abandoned": abandoned}
+
+
+TRANSIENT_CODES = ("STORAGE_UNAVAILABLE", "EMBEDDER_UNAVAILABLE")
+
+
+async def requeue_transient_failures(
+    sessions: async_sessionmaker[AsyncSession],
+    enqueue: Enqueue,
+    settings: Settings,
+    now: datetime | None = None,
+) -> int:
+    """Documents that failed only because a dependency was down (object store, embedder) are
+    retried automatically after a pause, a bounded number of times; after that the user's
+    "Try again" is the way forward. Permanent failures (encrypted, corrupt, ...) are never retried.
+    """
+    now = now or datetime.now(UTC)
+    cutoff = now - timedelta(seconds=settings.transient_retry_seconds)
+    requeued = 0
+    async with sessions() as s:
+        failed = (
+            await s.scalars(
+                select(Document)
+                .where(
+                    Document.deleted_at.is_(None),
+                    Document.status == "failed",
+                    Document.error_code.in_(TRANSIENT_CODES),
+                    Document.updated_at < cutoff,
+                )
+                .with_for_update(skip_locked=True)
+                .limit(100)
+            )
+        ).all()
+        for doc in failed:
+            attempts = (
+                await s.scalar(
+                    select(func.count())
+                    .select_from(IngestionJob)
+                    .where(IngestionJob.document_id == doc.id)
+                )
+                or 0
+            )
+            if attempts >= settings.max_transient_attempts:
+                doc.updated_at = now + timedelta(days=3650)  # give up quietly; "Try again" resets
+                continue
+            doc.status = "uploaded"
+            doc.error_code = None
+            doc.error_detail = None
+            doc.updated_at = now
+            requeued += 1
+            await enqueue(doc.id, doc.organization_id)
+        await s.commit()
+    if requeued:
+        _log.warning("transient_failures_requeued", requeued=requeued)
+    return requeued
 
 
 async def purge_deleted_objects(
