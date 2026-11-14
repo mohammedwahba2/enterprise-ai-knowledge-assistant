@@ -38,6 +38,14 @@ class Settings(BaseSettings):
     refresh_grace_seconds: int = Field(default=10, ge=0)
     reset_ttl_minutes: int = Field(default=30, ge=5)
 
+    # --- background processing ---
+    worker_database_url: str = "postgresql://worker_rw:change-me@localhost:5432/knowledge"
+    celery_broker_url: str | None = None  # defaults to the Redis server, database 1
+    soffice_binary: str = "soffice"
+    stuck_uploaded_seconds: int = 120
+    stuck_running_seconds: int = 900
+    max_processing_attempts: int = 3
+
     # --- documents ---
     max_upload_bytes: int = Field(default=50 * 1024 * 1024, ge=1024)
     max_files_per_upload: int = Field(default=10, ge=1, le=50)
@@ -90,6 +98,14 @@ class Settings(BaseSettings):
         elif len(self.jwt_secret.get_secret_value()) < 32:
             raise ValueError("JWT_SECRET must be at least 32 characters")
         return self
+
+
+def broker_url(settings: Settings) -> str:
+    """Celery's broker: the app's Redis server, but a separate logical database (1)."""
+    if settings.celery_broker_url:
+        return settings.celery_broker_url
+    base, _, _ = settings.redis_url.rpartition("/")
+    return f"{base}/1"
 
 
 @lru_cache

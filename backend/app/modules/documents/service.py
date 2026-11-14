@@ -24,9 +24,14 @@ from app.modules.documents.schemas import (
     CollectionOut,
     DocumentOut,
     DocumentPage,
+    PageInfo,
+    PageText,
+    StatusSummary,
     UploadResult,
 )
 from app.modules.identity.models import User
+from app.modules.processing.models import DocumentPage as PageRow
+from app.modules.processing.queue import Enqueue
 from app.modules.tenancy.deps import TenantCtx
 from app.modules.tenancy.models import Membership
 
@@ -268,7 +273,8 @@ def _doc_out(doc: Document, collection_name: str, uploader: str | None) -> Docum
         id=doc.id, collection_id=doc.collection_id, collection_name=collection_name,
         title=doc.title, original_filename=doc.original_filename, mime_type=doc.mime_type,
         size_bytes=doc.size_bytes, status=doc.status, error_code=doc.error_code,
-        page_count=doc.page_count, uploaded_by_name=uploader, created_at=doc.created_at,
+        page_count=doc.page_count, language=doc.language, page_summary=doc.page_summary,
+        uploaded_by_name=uploader, created_at=doc.created_at,
     )  # fmt: skip
 
 
@@ -298,6 +304,7 @@ async def upload_documents(
     ctx: TenantCtx,
     store: ObjectStore,
     settings: Settings,
+    enqueue: Enqueue,
     collection_id: uuid.UUID,
     files: list[UploadFile],
 ) -> list[UploadResult]:
@@ -311,7 +318,7 @@ async def upload_documents(
     collection = await _collection(ctx, collection_id)
     results: list[UploadResult] = []
     for upload in files:
-        results.append(await _ingest_one(ctx, store, settings, collection, upload))
+        results.append(await _ingest_one(ctx, store, settings, enqueue, collection, upload))
     return results
 
 
@@ -328,6 +335,7 @@ async def _ingest_one(
     ctx: TenantCtx,
     store: ObjectStore,
     settings: Settings,
+    enqueue: Enqueue,
     collection: Collection,
     upload: UploadFile,
 ) -> UploadResult:
@@ -391,6 +399,10 @@ async def _ingest_one(
             size=size,
             mime=sniffed.mime,
         )
+        try:
+            await enqueue(doc.id, ctx.org_id)  # processing starts in the background worker
+        except Exception:  # the upload is stored; the sweeper re-queues anything that never started
+            _log.error("enqueue_failed", document_id=str(doc.id), exc_info=True)
         return UploadResult(
             filename=display, outcome="created", document=_doc_out(doc, collection.name, uploader)
         )
@@ -518,3 +530,87 @@ async def delete_document(ctx: TenantCtx, store: ObjectStore, document_id: uuid.
         return
     doc.purged_at = datetime.now(UTC)
     await ctx.db.commit()
+
+
+# =============================================================== processing state
+
+PROCESSING = ("uploaded", "parsing", "chunking")
+NEEDS_ATTENTION = ("failed", "unsupported_scanned", "unsupported_garbled", "ready_partial")
+
+
+async def reprocess_document(ctx: TenantCtx, enqueue: Enqueue, document_id: uuid.UUID) -> None:
+    policies.require(ctx.role, Action.DOCUMENT_REPROCESS)
+    doc, _, _ = await _document(ctx, document_id)
+    if doc.status in PROCESSING:
+        raise AppError(409, "ALREADY_PROCESSING", "This document is already being processed")
+    doc.status = "uploaded"
+    doc.error_code = None
+    doc.error_detail = None
+    await ctx.db.commit()
+    _log.info(
+        "document.reprocess",
+        org_id=str(ctx.org_id),
+        actor=str(ctx.user.id),
+        document_id=str(doc.id),
+    )
+    await enqueue(doc.id, ctx.org_id)
+
+
+async def list_pages(ctx: TenantCtx, document_id: uuid.UUID) -> list[PageInfo]:
+    policies.require(ctx.role, Action.DOCUMENT_VIEW)
+    doc, _, _ = await _document(ctx, document_id)
+    rows = await ctx.db.scalars(
+        select(PageRow)
+        .where(
+            PageRow.document_id == doc.id,
+            PageRow.organization_id == ctx.org_id,
+            PageRow.collection_id.in_(_accessible_ids(ctx)),
+        )
+        .order_by(PageRow.page_number)
+    )
+    return [
+        PageInfo(
+            page_number=p.page_number, extraction_state=p.extraction_state, char_count=p.char_count
+        )
+        for p in rows
+    ]
+
+
+async def get_page(ctx: TenantCtx, document_id: uuid.UUID, page_number: int) -> PageText:
+    policies.require(ctx.role, Action.DOCUMENT_VIEW)
+    doc, _, _ = await _document(ctx, document_id)
+    page = await ctx.db.scalar(
+        select(PageRow).where(
+            PageRow.document_id == doc.id,
+            PageRow.page_number == page_number,
+            PageRow.organization_id == ctx.org_id,
+            PageRow.collection_id.in_(_accessible_ids(ctx)),
+        )
+    )
+    if page is None:
+        raise validation.not_found()
+    return PageText(
+        page_number=page.page_number, extraction_state=page.extraction_state,
+        char_count=page.char_count, text=page.text,
+    )  # fmt: skip
+
+
+async def status_summary(ctx: TenantCtx) -> StatusSummary:
+    policies.require(ctx.role, Action.DOCUMENT_VIEW)
+    rows = (
+        await ctx.db.execute(
+            select(Document.status, func.count())
+            .where(
+                Document.organization_id == ctx.org_id,
+                Document.deleted_at.is_(None),
+                Document.collection_id.in_(_accessible_ids(ctx)),
+            )
+            .group_by(Document.status)
+        )
+    ).all()
+    by_status = {status: int(count) for status, count in rows}
+    return StatusSummary(
+        total=sum(by_status.values()),
+        by_status=by_status,
+        needs_attention=sum(by_status.get(s, 0) for s in NEEDS_ATTENTION),
+    )

@@ -41,6 +41,7 @@ class Action(StrEnum):
     DOCUMENT_VIEW = "document:view"
     DOCUMENT_UPLOAD = "document:upload"
     DOCUMENT_DELETE = "document:delete"
+    DOCUMENT_REPROCESS = "document:reprocess"
 
 
 # Minimum role required for each action. Anything not listed is denied.
@@ -57,6 +58,7 @@ _MINIMUM: dict[Action, Role] = {
     Action.DOCUMENT_VIEW: Role.VIEWER,
     Action.DOCUMENT_UPLOAD: Role.EDITOR,
     Action.DOCUMENT_DELETE: Role.EDITOR,
+    Action.DOCUMENT_REPROCESS: Role.EDITOR,
 }
 
 

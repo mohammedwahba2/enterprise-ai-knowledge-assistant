@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from tests.tenancy_helpers import World
 
 APP_DB_PASSWORD = "app-role-test-password"
+WORKER_DB_PASSWORD = "worker-role-test-password"
 S3_KEY, S3_SECRET, S3_BUCKET = "test-access-key", "test-secret-key-0123456789", "test-bucket"
 SEAWEED_IMAGE = "chrislusf/seaweedfs:latest"
 PG_IMAGE = "pgvector/pgvector:pg16"
@@ -46,6 +47,7 @@ def pg_url() -> Iterator[str]:
         url = pg.get_connection_url().replace("+psycopg2", "")
         os.environ["DATABASE_URL"] = url
         os.environ["APP_DB_PASSWORD"] = APP_DB_PASSWORD
+        os.environ["WORKER_DB_PASSWORD"] = WORKER_DB_PASSWORD
         cfg = Config("alembic.ini")
         command.upgrade(cfg, "head")  # runs as the owner/superuser and creates the app role
         yield url
@@ -55,6 +57,12 @@ def pg_url() -> Iterator[str]:
 def app_db_url(pg_url: str) -> str:
     """The API connects as `app_rw` (non-superuser, NOBYPASSRLS), never as the owner."""
     return pg_url.replace("//test:test@", f"//app_rw:{APP_DB_PASSWORD}@")
+
+
+@pytest.fixture(scope="session")
+def worker_db_url(pg_url: str) -> str:
+    """The background worker connects as `worker_rw`, a separate least-privilege role."""
+    return pg_url.replace("//test:test@", f"//worker_rw:{WORKER_DB_PASSWORD}@")
 
 
 @pytest.fixture(scope="session")
@@ -117,6 +125,21 @@ class Outbox:
         return body.split("#token=", 1)[1].split()[0]
 
 
+@dataclass
+class Enqueued:
+    """Records processing requests instead of talking to a broker (tests run the pipeline directly)."""
+
+    calls: list[tuple[str, str]] = field(default_factory=list)
+
+    async def __call__(self, document_id: object, org_id: object) -> None:
+        self.calls.append((str(document_id), str(org_id)))
+
+
+@pytest.fixture
+def enqueued() -> Enqueued:
+    return Enqueued()
+
+
 @pytest.fixture
 def outbox() -> Outbox:
     return Outbox()
@@ -155,7 +178,8 @@ async def _clean_state(request: pytest.FixtureRequest) -> AsyncIterator[None]:
         await conn.execute(
             text(
                 "TRUNCATE users, refresh_tokens, password_resets, organizations, memberships, "
-                "invitations, collections, collection_members, documents CASCADE"
+                "invitations, collections, collection_members, documents, document_pages, chunks, "
+                "ingestion_jobs CASCADE"
             )
         )
     await engine.dispose()
@@ -172,9 +196,13 @@ async def make_client(
     email_sender: object,
     ip: str = "203.0.113.7",
     base_url: str = "http://localhost:8080",
+    enqueue: object | None = None,
 ) -> AsyncIterator[AsyncClient]:
     """A browser-like client (cookie jar, same-origin Origin header) with clean teardown."""
-    app = create_app(settings, checks=[], email_sender=email_sender)  # type: ignore[arg-type]
+    app = create_app(
+        settings, checks=[], email_sender=email_sender,  # type: ignore[arg-type]
+        enqueue=enqueue or Enqueued(),  # type: ignore[arg-type]
+    )  # fmt: skip
     transport = ASGITransport(app=app, client=(ip, 5000))
     try:
         async with AsyncClient(
@@ -212,10 +240,12 @@ async def plain_client(plain_settings: Settings) -> AsyncIterator[AsyncClient]:
 
 
 @pytest.fixture
-async def world(settings: Settings, outbox: Outbox) -> AsyncIterator["World"]:
+async def world(
+    settings: Settings, outbox: Outbox, worker_db_url: str, enqueued: Enqueued
+) -> AsyncIterator["World"]:
     from tests.tenancy_helpers import World
 
-    w = World(settings, outbox)
+    w = World(settings, outbox, worker_db_url, enqueued)
     try:
         yield w
     finally:

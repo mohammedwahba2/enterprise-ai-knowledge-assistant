@@ -15,6 +15,7 @@ from httpx import Response
 
 from app.main import create_app
 from tests import files
+from tests.pdfgen import PageSpec, make_pdf
 from tests.tenancy_helpers import Person, World
 
 METHODS = ("get", "post", "put", "patch", "delete")
@@ -40,7 +41,13 @@ BODIES: dict[tuple[str, str], dict[str, Any]] = {
 MULTIPART = {
     ("post", f"{ORG}/documents")
 }  # sent as a real file upload into the victim's collection
-PARAMS = {"org_id", "member_id", "invitation_id", "collection_id", "document_id"}
+NO_BODY = {
+    ("post", f"{ORG}/documents/{{document_id}}/reprocess")
+}  # action routes without a payload
+STREAMING = {
+    f"{ORG}/documents/events"
+}  # open-ended responses: owner access is checked live instead
+PARAMS = {"org_id", "member_id", "invitation_id", "collection_id", "document_id", "page_number"}
 
 
 def _routes() -> list[tuple[str, str]]:
@@ -72,6 +79,7 @@ def test_every_org_scoped_route_has_a_body_sample_when_it_needs_one() -> None:
         and m in ("post", "put", "patch")
         and (m, p) not in BODIES
         and (m, p) not in MULTIPART
+        and (m, p) not in NO_BODY
     ]
     assert not missing, f"Add sample bodies for: {missing}"
 
@@ -132,13 +140,16 @@ async def _victim(world: World) -> tuple[Person, dict[str, str]]:
     collection_id = await world.collection(
         victim, oid, "Board", "restricted", members=[member.user_id]
     )
-    upload = await victim.upload(oid, collection_id, ("secret.pdf", files.pdf("secret")))
+    pdf = make_pdf([PageSpec(["Confidential board minutes about remuneration policy approval"])])
+    upload = await victim.upload(oid, collection_id, ("secret.pdf", pdf))
+    await world.process(oid, upload.json()[0]["document"]["id"])  # so page routes have real data
     ids = {
         "org_id": oid,
         "member_id": await world.member_id(victim, oid, member.user_id),
         "invitation_id": (await victim.get(f"/orgs/{oid}/invitations")).json()[0]["id"],
         "collection_id": collection_id,
         "document_id": upload.json()[0]["document"]["id"],
+        "page_number": "1",
     }
     return victim, ids
 
@@ -217,6 +228,6 @@ async def test_the_owner_really_reaches_every_get_route(world: World) -> None:
     """Guards the matrix against a false pass: the URLs it builds are valid for real members."""
     victim, ids = await _victim(world)
     for method, template in _routes():
-        if method == "get" and "{org_id}" in template:
+        if method == "get" and "{org_id}" in template and template not in STREAMING:
             r = await victim.client.get(_fill(template, ids))
             assert r.status_code == 200, template

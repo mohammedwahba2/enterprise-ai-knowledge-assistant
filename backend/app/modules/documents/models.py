@@ -1,7 +1,9 @@
 import uuid
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, Integer, String, func
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, new_id
@@ -72,5 +74,10 @@ class Document(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+    language: Mapped[str | None] = mapped_column(String(8))
+    pagination: Mapped[str | None] = mapped_column(String(8))
+    viewer_key: Mapped[str | None] = mapped_column(String(255))
+    page_summary: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     purged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

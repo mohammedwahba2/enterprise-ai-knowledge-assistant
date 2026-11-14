@@ -31,7 +31,7 @@ async def seeded(pg_url: str) -> None:
     try:
         await conn.execute(
             "TRUNCATE users, refresh_tokens, password_resets, organizations, memberships, invitations, "
-            "collections, collection_members, documents CASCADE"
+            "collections, collection_members, documents, document_pages, chunks, ingestion_jobs CASCADE"
         )
         for uid, mail in ((U_A, "a@example.com"), (U_A2, "a2@example.com"), (U_B, "b@example.com")):
             await conn.execute(
@@ -85,7 +85,7 @@ async def as_app(
 
 
 async def count(conn: asyncpg.Connection, table: str, where: str = "true") -> int:
-    return int(await conn.fetchval(f"SELECT count(*) FROM {table} WHERE {where}"))  # noqa: S608
+    return int(await conn.fetchval(f"SELECT count(*) FROM {table} WHERE {where}"))
 
 
 # ---------------- the role itself ----------------
@@ -135,6 +135,8 @@ async def test_every_tenant_table_has_rls_and_policies_for_every_command(
                 r["cmd"]
                 for r in await conn.fetch("SELECT cmd FROM pg_policies WHERE tablename = $1", table)
             }
+            if "ALL" in cmds:  # a FOR ALL policy covers every command
+                cmds |= {"SELECT", "INSERT", "UPDATE", "DELETE"}
             assert {"SELECT", "INSERT", "UPDATE", "DELETE"} <= cmds, (
                 f"{table}: missing policies {cmds}"
             )

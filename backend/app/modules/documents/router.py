@@ -1,19 +1,23 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Path, Query, Request, UploadFile
 from fastapi.responses import StreamingResponse
+from starlette.status import HTTP_202_ACCEPTED
 
 from app.core.errors import AppError
 from app.infrastructure.storage.s3 import ObjectMissingError, ObjectStore, StorageUnavailableError
-from app.modules.documents import service, validation
+from app.modules.documents import events, service, validation
 from app.modules.documents.schemas import (
     CollectionMemberOut,
     CollectionOut,
     CreateCollectionRequest,
     DocumentOut,
     DocumentPage,
+    PageInfo,
+    PageText,
     SetMembersRequest,
+    StatusSummary,
     UpdateCollectionRequest,
     UploadResult,
 )
@@ -91,13 +95,16 @@ async def set_collection_members(
 @router.post("/{org_id}/documents", response_model=list[UploadResult])
 async def upload_documents(
     org_id: uuid.UUID,
+    request: Request,
     ctx: Tenant,
     store: Store,
     settings: SettingsDep,
     collection_id: Annotated[uuid.UUID, Form()],
     files: Annotated[list[UploadFile], File()],
 ) -> list[UploadResult]:
-    return await service.upload_documents(ctx, store, settings, collection_id, files)
+    return await service.upload_documents(
+        ctx, store, settings, request.app.state.enqueue, collection_id, files
+    )
 
 
 @router.get("/{org_id}/documents", response_model=DocumentPage)
@@ -112,6 +119,34 @@ async def list_documents(
 ) -> DocumentPage:
     return await service.list_documents(
         ctx, collection_id=collection_id, q=q, status=status, cursor=cursor, limit=limit
+    )
+
+
+@router.get("/{org_id}/documents/summary", response_model=StatusSummary)
+async def documents_summary(org_id: uuid.UUID, ctx: Tenant) -> StatusSummary:
+    return await service.status_summary(ctx)
+
+
+@router.get("/{org_id}/documents/events")
+async def document_events(org_id: uuid.UUID, request: Request, ctx: Tenant) -> StreamingResponse:
+    """Server-sent events with document progress. Every event is re-authorised for this caller."""
+    session_id = request.state.session_id
+    stream = events.stream_events(
+        request.app.state.sessionmaker,
+        request.app.state.redis,
+        user_id=ctx.user.id,
+        org_id=ctx.org_id,
+        session_id=session_id,
+        is_disconnected=request.is_disconnected,
+    )
+    return StreamingResponse(
+        stream,
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-store",
+            "X-Accel-Buffering": "no",
+            "X-Content-Type-Options": "nosniff",
+        },
     )
 
 
@@ -159,3 +194,23 @@ async def download_document(
             "Cache-Control": "private, no-store",
         },
     )
+
+
+@router.get("/{org_id}/documents/{document_id}/pages", response_model=list[PageInfo])
+async def list_pages(org_id: uuid.UUID, document_id: uuid.UUID, ctx: Tenant) -> list[PageInfo]:
+    return await service.list_pages(ctx, document_id)
+
+
+@router.get("/{org_id}/documents/{document_id}/pages/{page_number}", response_model=PageText)
+async def get_page(
+    org_id: uuid.UUID, document_id: uuid.UUID, page_number: Annotated[int, Path(ge=1)], ctx: Tenant
+) -> PageText:
+    return await service.get_page(ctx, document_id, page_number)
+
+
+@router.post("/{org_id}/documents/{document_id}/reprocess", status_code=HTTP_202_ACCEPTED)
+async def reprocess_document(
+    org_id: uuid.UUID, document_id: uuid.UUID, request: Request, ctx: Tenant
+) -> dict[str, str]:
+    await service.reprocess_document(ctx, request.app.state.enqueue, document_id)
+    return {"status": "queued"}

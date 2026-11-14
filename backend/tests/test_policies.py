@@ -29,6 +29,7 @@ EXPECTED: dict[Action, set[Role]] = {
     Action.DOCUMENT_VIEW: {Role.OWNER, Role.ADMIN, Role.EDITOR, Role.MEMBER, Role.VIEWER},
     Action.DOCUMENT_UPLOAD: {Role.OWNER, Role.ADMIN, Role.EDITOR},
     Action.DOCUMENT_DELETE: {Role.OWNER, Role.ADMIN, Role.EDITOR},
+    Action.DOCUMENT_REPROCESS: {Role.OWNER, Role.ADMIN, Role.EDITOR},
 }
 
 

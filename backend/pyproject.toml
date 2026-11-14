@@ -21,6 +21,8 @@ dependencies = [
   "email-validator>=2.3.0",
   "boto3>=1.44.2",
   "python-multipart>=0.0.33",
+  "celery>=5.7.0",
+  "pypdfium2>=5.15.2",
 ]
 
 [dependency-groups]
@@ -30,6 +32,8 @@ dev = [
     "ruff>=0.8",
     "mypy>=1.13",
     "testcontainers>=4.15.0",
+    "hypothesis>=6.170.15",
+    "pypdf>=7.1.0",
 ]
 
 [tool.uv]
@@ -47,7 +51,7 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "S", "ASYNC", "SIM", "RUF"]
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101", "S105", "S106", "E501"]
+"tests/*" = ["S101", "S105", "S106", "S107", "E501", "RUF001", "RUF003", "RUF005", "RUF007", "F811", "S608", "ASYNC109"]
 "migrations/*" = ["E501", "I001", "S608"]
 
 [tool.mypy]
@@ -57,5 +61,9 @@ plugins = []
 files = ["app", "tests"]
 
 [[tool.mypy.overrides]]
-module = ["asyncpg", "asyncpg.*", "boto3", "boto3.*", "botocore", "botocore.*"]
+module = ["asyncpg", "asyncpg.*", "boto3", "boto3.*", "botocore", "botocore.*", "pypdfium2", "pypdfium2.*", "celery", "celery.*", "kombu", "kombu.*"]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["app.worker.tasks"]
+disallow_untyped_decorators = false  # celery ships no type information

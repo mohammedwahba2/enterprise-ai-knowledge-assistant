@@ -18,6 +18,7 @@ from app.modules.identity.email import EmailSender, SmtpEmailSender
 from app.modules.identity.passwords import PasswordService
 from app.modules.identity.rate_limit import RateLimiter
 from app.modules.identity.router import router as auth_router
+from app.modules.processing.queue import Enqueue, celery_enqueue
 from app.modules.tenancy.router import invitations_router
 from app.modules.tenancy.router import router as orgs_router
 
@@ -28,6 +29,7 @@ def create_app(
     *,
     email_sender: EmailSender | None = None,
     store: ObjectStore | None = None,
+    enqueue: Enqueue | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
     configure_logging(settings.log_level, settings.log_json)
@@ -67,6 +69,7 @@ def create_app(
     )
     app.state.email_sender = email_sender or SmtpEmailSender(settings)
     app.state.store = store or S3ObjectStore(settings)
+    app.state.enqueue = enqueue or celery_enqueue
 
     app.add_middleware(RequestContextMiddleware)
     install_error_handlers(app)

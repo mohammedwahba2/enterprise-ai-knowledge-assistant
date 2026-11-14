@@ -68,6 +68,22 @@ def csrf_guard(request: Request) -> None:
         raise AppError(403, "CSRF_FAILED", "CSRF token missing or invalid")
 
 
+async def session_alive(session: AsyncSession, user_id: uuid.UUID, session_id: uuid.UUID) -> bool:
+    """The session's refresh family still has a live token (database = source of truth)."""
+    return bool(
+        await session.scalar(
+            select(
+                exists().where(
+                    RefreshToken.family_id == session_id,
+                    RefreshToken.user_id == user_id,
+                    RefreshToken.revoked_at.is_(None),
+                    RefreshToken.expires_at > func.now(),
+                )
+            )
+        )
+    )
+
+
 async def current_user(
     request: Request,
     session: Session,
@@ -88,17 +104,7 @@ async def current_user(
         claims = decode_access_token(settings, token)
     except TokenError:
         raise unauthenticated from None
-    alive = await session.scalar(
-        select(
-            exists().where(
-                RefreshToken.family_id == claims.session_id,
-                RefreshToken.user_id == claims.user_id,
-                RefreshToken.revoked_at.is_(None),
-                RefreshToken.expires_at > func.now(),
-            )
-        )
-    )
-    if not alive:
+    if not await session_alive(session, claims.user_id, claims.session_id):
         raise unauthenticated
     user = await session.get(User, claims.user_id)
     if user is None or not user.is_active:

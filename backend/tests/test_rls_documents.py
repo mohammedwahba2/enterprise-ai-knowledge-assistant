@@ -23,7 +23,7 @@ async def world_db(pg_url: str) -> None:
     try:
         await conn.execute(
             "TRUNCATE users, refresh_tokens, password_resets, organizations, memberships, invitations, "
-            "collections, collection_members, documents CASCADE"
+            "collections, collection_members, documents, document_pages, chunks, ingestion_jobs CASCADE"
         )
         for uid in (ADMIN, LISTED, UNLISTED, OUTSIDER):
             await conn.execute(
@@ -69,7 +69,7 @@ async def world_db(pg_url: str) -> None:
 
 
 async def visible(conn: asyncpg.Connection, table: str, col: str = "id") -> set[uuid.UUID]:
-    return {r[col] for r in await conn.fetch(f"SELECT {col} FROM {table}")}  # noqa: S608
+    return {r[col] for r in await conn.fetch(f"SELECT {col} FROM {table}")}
 
 
 @pytest.mark.parametrize(

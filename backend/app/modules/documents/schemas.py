@@ -69,6 +69,8 @@ class DocumentOut(BaseModel):
     status: str
     error_code: str | None
     page_count: int | None
+    language: str | None
+    page_summary: dict[str, int] | None
     uploaded_by_name: str | None
     created_at: datetime
 
@@ -83,3 +85,19 @@ class UploadResult(BaseModel):
     outcome: Literal["created", "duplicate", "rejected"]
     document: DocumentOut | None = None
     error_code: str | None = None
+
+
+class PageInfo(BaseModel):
+    page_number: int
+    extraction_state: str  # text | image_only | garbled
+    char_count: int
+
+
+class PageText(PageInfo):
+    text: str
+
+
+class StatusSummary(BaseModel):
+    total: int
+    by_status: dict[str, int]
+    needs_attention: int

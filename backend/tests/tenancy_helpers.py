@@ -60,12 +60,19 @@ class Person:
 class World:
     settings: Settings
     outbox: Outbox
+    worker_db_url: str = ""
+    enqueued: object | None = None
     stack: AsyncExitStack = field(default_factory=AsyncExitStack)
 
     async def person(self, name: str, email: str | None = None) -> Person:
         email = email or f"{name.lower()}-{uuid.uuid4().hex[:6]}@example.com"
         client = await self.stack.enter_async_context(
-            make_client(self.settings, email_sender=self.outbox, ip=f"203.0.113.{next(_ip)}")
+            make_client(
+                self.settings,
+                email_sender=self.outbox,
+                ip=f"203.0.113.{next(_ip)}",
+                enqueue=self.enqueued,
+            )
         )
         r = await client.post(
             f"{V1}/auth/sign-up", json={"email": email, "password": PASSWORD, "display_name": name}
@@ -126,6 +133,12 @@ class World:
                 yield session
         finally:
             await engine.dispose()
+
+    async def process(self, org_id: str, document_id: str, **kwargs: object) -> str:
+        """Run the ingestion pipeline for one document, as the background worker would."""
+        from tests.pipeline_helpers import run_pipeline
+
+        return await run_pipeline(self.settings, self.worker_db_url, org_id, document_id, **kwargs)  # type: ignore[arg-type]
 
     async def aclose(self) -> None:
         await self.stack.aclose()

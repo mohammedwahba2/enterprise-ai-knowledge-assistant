@@ -2,6 +2,7 @@
 
 import asyncio
 from collections.abc import AsyncIterator, Callable
+from datetime import datetime
 from typing import IO, Any, Protocol
 
 import boto3
@@ -33,6 +34,7 @@ class ObjectStore(Protocol):
     async def delete_prefix(self, prefix: str) -> int: ...
     async def exists(self, key: str) -> bool: ...
     async def list_keys(self, prefix: str) -> list[str]: ...
+    async def list_objects(self, prefix: str) -> list[tuple[str, datetime]]: ...
 
 
 class _KeepOpen:
@@ -152,6 +154,20 @@ class S3ObjectStore:
             keys += [o["Key"] for o in page.get("Contents", [])]
             if not page.get("IsTruncated"):
                 return keys
+            token = page.get("NextContinuationToken")
+
+    async def list_objects(self, prefix: str) -> list[tuple[str, datetime]]:
+        """(key, last_modified) for everything under `prefix` (used by the orphan sweeper)."""
+        found: list[tuple[str, datetime]] = []
+        token: str | None = None
+        while True:
+            kwargs: dict[str, Any] = {"Bucket": self._bucket, "Prefix": prefix}
+            if token:
+                kwargs["ContinuationToken"] = token
+            page = await self._call(self._client.list_objects_v2, **kwargs)
+            found += [(o["Key"], o["LastModified"]) for o in page.get("Contents", [])]
+            if not page.get("IsTruncated"):
+                return found
             token = page.get("NextContinuationToken")
 
     async def delete_prefix(self, prefix: str) -> int:
