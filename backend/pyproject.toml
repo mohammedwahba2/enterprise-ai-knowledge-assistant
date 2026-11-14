@@ -22,6 +22,7 @@ dependencies = [
   "boto3>=1.44.2",
   "python-multipart>=0.0.33",
   "celery>=5.7.0",
+  "packaging>=24.0",  # imported by kombu's Redis transport; not declared by kombu itself
   "pypdfium2>=5.15.2",
 ]
 
