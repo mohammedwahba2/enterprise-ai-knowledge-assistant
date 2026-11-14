@@ -1,5 +1,6 @@
 """Document parsers. They run in the worker, never in the API (untrusted input, native code)."""
 
+import ctypes
 import re
 import shutil
 import subprocess
@@ -51,7 +52,7 @@ def parse_pdf(path: Path) -> list[RawPage]:
             try:
                 textpage = page.get_textpage()
                 try:
-                    text = textpage.get_text_bounded()
+                    text = _repair_lam_alef(textpage, textpage.get_text_bounded())
                 finally:
                     textpage.close()
                 ratio = _image_ratio(page)
@@ -66,6 +67,47 @@ def parse_pdf(path: Path) -> list[RawPage]:
         return pages
     finally:
         pdf.close()
+
+
+_ARABIC_LETTER = re.compile("[\u0621-\u064a]")
+_ALEF_FORMS = frozenset("\u0627\u0623\u0625\u0622\u0671")  # alef, hamza above/below, madda, wasla
+_LAM = "\u0644"
+
+
+def _repair_lam_alef(textpage: pdfium.PdfTextPage, text: str) -> str:
+    """Undo pdfium's swapped lam-alef ligatures.
+
+    Word processors draw lam+alef as ONE ligature glyph whose ToUnicode entry is two characters.
+    pdfium emits those two characters in the wrong order for right-to-left text ("ثلاثين" comes
+    out as "ثالثين", "السلام" as "السالم"), which silently breaks Arabic search. The two characters
+    of a ligature share one glyph box, while a genuine alef+lam (the definite article) occupies two
+    boxes, so only boxed-together (alef-form, lam) pairs are swapped and a real "ال" is untouched.
+    Pages without Arabic letters skip the slow per-character pass entirely.
+    """
+    if not _ARABIC_LETTER.search(text):
+        return text
+    handle = textpage.raw
+    count = int(pdfium_c.FPDFText_CountChars(handle))
+    chars: list[str] = []
+    boxes: list[tuple[float, float]] = []
+    left, right, bottom, top = (ctypes.c_double() for _ in range(4))
+    for index in range(count):
+        code = int(pdfium_c.FPDFText_GetUnicode(handle, index))
+        if code == 0:
+            continue
+        pdfium_c.FPDFText_GetCharBox(handle, index, left, right, bottom, top)
+        chars.append(chr(code))
+        boxes.append((round(left.value, 3), round(right.value, 3)))
+    swapped = False
+    i = 1
+    while i < len(chars):
+        if chars[i] == _LAM and chars[i - 1] in _ALEF_FORMS and boxes[i] == boxes[i - 1]:
+            chars[i - 1], chars[i] = chars[i], chars[i - 1]
+            swapped = True
+            i += 2
+        else:
+            i += 1
+    return "".join(chars) if swapped else text
 
 
 def _image_ratio(page: pdfium.PdfPage) -> float:

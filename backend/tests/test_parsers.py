@@ -141,3 +141,19 @@ def test_a_missing_binary_is_a_conversion_failure_not_a_crash(tmp_path: Path) ->
     with pytest.raises(ProcessingError) as exc:
         converter.to_pdf(src)
     assert exc.value.code == "CONVERSION_FAILED"
+
+
+FIXTURES = Path(__file__).parent / "fixtures"
+
+
+def test_libreoffice_arabic_lam_alef_ligatures_are_repaired() -> None:
+    """A real LibreOffice-produced Arabic PDF (synthetic text): pdfium swaps lam+alef ligature pairs.
+
+    Regression test for a bug only the real converter revealed: "ثلاثين" extracted as "ثالثين",
+    "السلام" as "السالم", "لا إله إلا الله" as "ال إله إال الله", which broke Arabic search.
+    """
+    (page,) = parse_pdf(FIXTURES / "libreoffice_arabic.pdf")
+    for word in ("الإجازة", "ثلاثين", "السلام", "لا إله إلا الله", "الشركة", "السنوية", "الحصول"):
+        assert word in page.text, word
+    for broken in ("اإلجازة", "ثالثين", "السالم", "ال إله"):
+        assert broken not in page.text, broken

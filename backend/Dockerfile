@@ -8,6 +8,16 @@ FROM base AS deps
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 
+# Worker operating system layer: LibreOffice (DOCX/PPTX -> PDF so page numbers match what users see)
+# and fonts with Arabic coverage. Heavy on purpose and kept ABOVE the application layers so a code
+# change never re-installs it. Only the worker pays for it; it never serves HTTP.
+FROM base AS worker-os
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends libreoffice-writer libreoffice-impress \
+    fonts-noto-core fonts-noto-ui-core fonts-dejavu-core fontconfig \
+ && apt-get clean \
+ && fc-cache -f
+
 FROM base AS runtime
 RUN useradd --system --uid 10001 --no-create-home app
 COPY --from=deps /opt/venv /opt/venv
@@ -21,15 +31,12 @@ USER 10001
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log", "--proxy-headers"]
 
-# Background worker: the same code plus LibreOffice (DOCX/PPTX -> PDF so page numbers match what
-# users see) and fonts with Arabic coverage. Heavier than the API image on purpose; only the
-# worker pays for it, and it never serves HTTP.
-FROM runtime AS worker
-USER root
-RUN apt-get update \
- && apt-get install -y --no-install-recommends libreoffice-writer libreoffice-impress \
-    fonts-noto-core fonts-noto-ui-core fonts-dejavu-core fontconfig \
- && apt-get clean \
- && fc-cache -f
+FROM worker-os AS worker
+RUN useradd --system --uid 10001 --no-create-home app
+COPY --from=deps /opt/venv /opt/venv
+COPY app ./app
+COPY alembic.ini ./
+COPY migrations ./migrations
+ENV PATH="/opt/venv/bin:$PATH"
 USER 10001
 CMD ["celery", "-A", "app.worker.celery_app", "worker", "-Q", "ingest", "--concurrency=2", "--loglevel=INFO"]
