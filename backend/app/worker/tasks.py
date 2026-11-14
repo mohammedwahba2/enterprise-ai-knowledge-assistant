@@ -1,4 +1,5 @@
 import asyncio
+import sys
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
@@ -44,7 +45,9 @@ async def _enqueue_via_celery(document_id: uuid.UUID, org_id: uuid.UUID) -> None
 @celery_app.task(name=PROCESS_TASK)
 def process_document_task(document_id: str, org_id: str) -> str:
     settings = get_settings()
-    configure_logging(settings.log_level, settings.log_json)
+    # Celery replaces sys.stdout with a proxy into its own logger: writing there would swallow every
+    # line (failures included), so log to the real stream.
+    configure_logging(settings.log_level, settings.log_json, stream=sys.__stdout__)
 
     async def run() -> str:
         async with _runtime(settings) as (sessions, store, redis):
@@ -62,7 +65,7 @@ def process_document_task(document_id: str, org_id: str) -> str:
 
 def _sweep(fn: Callable[..., Awaitable[Any]]) -> Any:
     settings = get_settings()
-    configure_logging(settings.log_level, settings.log_json)
+    configure_logging(settings.log_level, settings.log_json, stream=sys.__stdout__)
 
     async def run() -> Any:
         async with _runtime(settings) as (sessions, store, _redis):
