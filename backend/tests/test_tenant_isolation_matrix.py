@@ -37,6 +37,8 @@ BODIES: dict[tuple[str, str], dict[str, Any]] = {
     ("post", f"{ORG}/collections"): {"name": "Planted"},
     ("patch", f"{ORG}/collections/{{collection_id}}"): {"name": "Hijacked", "visibility": "org"},
     ("put", f"{ORG}/collections/{{collection_id}}/members"): {"user_ids": []},
+    ("post", f"{ORG}/search"): {"query": "annual leave"},
+    ("post", f"{ORG}/search/debug"): {"query": "annual leave"},
 }
 MULTIPART = {
     ("post", f"{ORG}/documents")

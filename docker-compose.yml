@@ -70,6 +70,11 @@ services:
       S3_ACCESS_KEY: ${S3_ACCESS_KEY:?run ./scripts/init-env.sh}
       S3_SECRET_KEY: ${S3_SECRET_KEY:?run ./scripts/init-env.sh}
       S3_BUCKET: ${S3_BUCKET:-knowledge-documents}
+      # Query embedding for search (same host Ollama as the worker; search degrades to full text
+      # when it is unreachable).
+      EMBEDDER_URL: ${EMBEDDER_URL:-http://host.docker.internal:11434}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-bge-m3}
+    extra_hosts: ["host.docker.int  ernal:host-gateway"]
     depends_on:
       migrate: { condition: service_completed_successfully }
       postgres: { condition: service_healthy }

@@ -309,12 +309,18 @@ async def test_a_vector_without_its_model_is_refused_by_the_database(world: Worl
         )
 
 
-async def test_the_api_role_still_cannot_read_chunks_or_vectors(world: World) -> None:
+async def test_the_api_role_can_read_chunks_only_through_rls_and_never_write_them(
+    world: World,
+) -> None:
+    """Retrieval (stage 7) reads chunks and vectors as the API role, scoped to one user."""
     owner, oid, cid = await setup(world)
     await ingest(world, owner, oid, cid, "handbook.pdf", HANDBOOK)
     async with world.scoped_db(oid, owner.user_id) as s:
+        assert await s.scalar(text("select count(embedding) from chunks")) > 0
         with pytest.raises(Exception, match="permission denied"):
-            await s.execute(text("select embedding from chunks limit 1"))
+            await s.execute(text("update chunks set embedding = null"))
+    async with world.scoped_db(str(uuid.uuid4()), owner.user_id) as s:  # not this user's org
+        assert await s.scalar(text("select count(*) from chunks")) == 0
 
 
 async def test_vector_and_full_text_indexes_are_usable(world: World) -> None:

@@ -122,13 +122,14 @@ async def test_worker_owns_pages_chunks_and_jobs(worker: asyncpg.Connection) -> 
     [
         "INSERT INTO chunks (id, organization_id, document_id, collection_id, page_start, page_end, chunk_index, "
         f"content, content_search, token_count, lang) VALUES (gen_random_uuid(), '{ORG_A}', '{D_OPEN}', '{C_OPEN}', 1, 1, 0, 'c', 'c', 1, 'en')",
-        "SELECT count(*) FROM chunks",
+        "UPDATE chunks SET content = 'tampered'",
+        "DELETE FROM chunks",
         "SELECT count(*) FROM ingestion_jobs",
         "DELETE FROM document_pages",
         "UPDATE document_pages SET char_count = 1",
     ],
 )
-async def test_api_role_cannot_write_or_read_the_worker_tables(
+async def test_api_role_cannot_write_the_worker_tables_or_read_the_job_log(
     world_db: None, app_db_url: str, sql: str
 ) -> None:
     async with as_app(app_db_url, user=LISTED, org=ORG_A) as conn:
