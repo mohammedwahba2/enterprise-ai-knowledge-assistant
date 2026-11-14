@@ -282,11 +282,17 @@ def _event(name: str, data: dict[str, Any]) -> dict[str, Any]:
     return {"event": name, "data": data}
 
 
-def _related(chunks: Sequence[RankedChunk]) -> list[dict[str, Any]]:
+RELATED_FLOOR = 0.7  # of the gate threshold: "possibly related" must at least be near the bar
+
+
+def _related(chunks: Sequence[RankedChunk], settings: Settings) -> list[dict[str, Any]]:
+    """Near-misses to offer the user: genuinely close (not just any retrieved chunk), one per
+    document, and only ever from what this user is allowed to see (retrieval is prefiltered)."""
+    floor = settings.gate_min_similarity * RELATED_FLOOR
     seen: set[uuid.UUID] = set()
     out: list[dict[str, Any]] = []
     for c in chunks:
-        if c.document_id in seen:
+        if c.document_id in seen or c.similarity is None or c.similarity < floor:
             continue
         seen.add(c.document_id)
         out.append(
@@ -388,6 +394,34 @@ async def _finish(
         await db.commit()
 
 
+UNSEARCHABLE_STATUSES = ("unsupported_scanned", "unsupported_garbled", "failed")
+
+
+async def _unsearchable(deps: ChatDeps, started: Started) -> int:
+    """How many documents this user can see that could not be searched at all (scanned, unreadable
+    or failed): the interface says so next to a "not found", because the answer may be in one."""
+    try:
+        async with _scoped(deps, started) as db:
+            user = await db.get(User, started.user_id)
+            if user is None:
+                return 0
+            ctx = TenantCtx(db=db, user=user, org_id=started.org_id, role=started.role)
+            count = await db.scalar(
+                select(func.count())
+                .select_from(Document)
+                .where(
+                    Document.organization_id == started.org_id,
+                    Document.deleted_at.is_(None),
+                    Document.status.in_(UNSEARCHABLE_STATUSES),
+                    Document.collection_id.in_(accessible_collection_ids(ctx)),
+                )
+            )
+            return int(count or 0)
+    except Exception:
+        _log.warning("unsearchable_count_failed", exc_info=True)
+        return 0
+
+
 async def generate(deps: ChatDeps, started: Started) -> AsyncGenerator[dict[str, Any], None]:
     """Run one answer and yield protocol events. Never raises: failures become `error` events."""
     settings = deps.settings
@@ -441,7 +475,13 @@ async def generate(deps: ChatDeps, started: Started) -> AsyncGenerator[dict[str,
             )
             finished = True
             yield _event(
-                "refused", {"reason": "NOT_FOUND", "text": text, "related": _related(window)}
+                "refused",
+                {
+                    "reason": "NOT_FOUND",
+                    "text": text,
+                    "related": _related(window, settings),
+                    "unsearchable_documents": await _unsearchable(deps, started),
+                },
             )
             yield _event(
                 "done", {"message_id": str(started.assistant_message_id), "status": "refused"}
@@ -482,9 +522,14 @@ async def generate(deps: ChatDeps, started: Started) -> AsyncGenerator[dict[str,
         )
 
         # 4. generate (one run at a time; others wait visibly, within a bounded queue)
-        if deps.queue.would_wait():
-            yield _event("queued", {"position": deps.queue.waiting + 1})
-        await deps.queue.acquire()
+        ticket = deps.queue.enter()  # atomic: a full queue is refused, never over-admitted
+        if ticket is None:
+            await _fail(deps, started, "BUSY", "")
+            yield _event("error", {"code": "BUSY"})
+            yield _event(
+                "done", {"message_id": str(started.assistant_message_id), "status": "error"}
+            )
+            return
         buffer = ""
         emitting = False
         no_answer = False
@@ -493,6 +538,9 @@ async def generate(deps: ChatDeps, started: Started) -> AsyncGenerator[dict[str,
         completion_tokens: int | None = None
         stream = deps.chat.stream(built.messages, max_tokens=settings.llm_max_output_tokens)
         try:
+            if ticket.position > 0:
+                yield _event("queued", {"position": ticket.position})
+            await ticket.ready()
             async for chunk in stream:
                 if chunk.done:
                     prompt_tokens, completion_tokens = chunk.prompt_tokens, chunk.completion_tokens
@@ -514,7 +562,7 @@ async def generate(deps: ChatDeps, started: Started) -> AsyncGenerator[dict[str,
                 else:
                     yield _event("delta", {"text": chunk.text, "provisional": True})
         finally:
-            deps.queue.release()
+            ticket.release()
             aclose = getattr(stream, "aclose", None)
             if aclose is not None:
                 await aclose()  # stop the model run at once (NO_ANSWER seen, or the client left)
@@ -573,7 +621,15 @@ async def generate(deps: ChatDeps, started: Started) -> AsyncGenerator[dict[str,
                 evidence=evidence.chunks,
             )
             finished = True
-            yield _event("refused", {"reason": refusal, "text": text, "related": _related(window)})
+            yield _event(
+                "refused",
+                {
+                    "reason": refusal,
+                    "text": text,
+                    "related": _related(window, settings),
+                    "unsearchable_documents": await _unsearchable(deps, started),
+                },
+            )
             yield _event(
                 "done", {"message_id": str(started.assistant_message_id), "status": "refused"}
             )

@@ -90,7 +90,7 @@ class Settings(BaseSettings):
     answer_context_chunks: int = Field(default=6, ge=1, le=12)
     # Retrieval gate: refuse WITHOUT calling the model below these evidence levels. Calibrated on
     # the calibration split and verified on the test split (docs/eval/stage8-answers.md).
-    gate_min_similarity: float = Field(default=0.45, ge=0.0, le=1.0)
+    gate_min_similarity: float = Field(default=0.41, ge=0.0, le=1.0)  # calibrated: 0.409
     gate_min_fts_score: float = Field(default=1.0, ge=0.0)  # used only when vectors are unavailable
     # Citation verification: a cited sentence is supported when its numbers all occur in the cited
     # passage AND (it shares enough words with it OR is semantically close).

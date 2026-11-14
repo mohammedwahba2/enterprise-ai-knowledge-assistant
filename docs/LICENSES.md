@@ -24,6 +24,8 @@ The project is licensed under Apache-2.0 (see `LICENSE`). This file tracks notab
 | BAAI bge-m3 (downloaded by the user through Ollama, not distributed with this repository) | Multilingual embedding model, 1024 dimensions | MIT (verified from the model card) |
 | intfloat multilingual-e5-large (evaluation only; downloaded from Hugging Face, not distributed) | Bake-off candidate embedder | MIT (verified from the model card) |
 | Omartificial-Intelligence-Space Arabic-Triplet-Matryoshka-V2 (evaluation only; not distributed) | Bake-off candidate, Arabic-focused embedder, 768 dimensions | Apache-2.0 (verified from the model card) |
+| Qwen3-8B (`qwen3:8b`, pulled by the user through Ollama, not distributed) | Answer-generation candidate (stage 8) | Apache-2.0 (verified from the model's license layer in the Ollama registry) |
+| Llama 3.1 8B (`llama3.1:8b`, pulled by the user through Ollama, not distributed) | Answer-generation candidate (stage 8) | Llama 3.1 Community License (custom, not OSI-approved; verified from the registry's license layer). Using it locally is permitted; **redistributing the weights or a product that ships them carries attribution ("Built with Llama") and acceptable-use obligations**, which is why they are not in this repository or the images |
 | sentence-transformers, PyTorch, Transformers (isolated evaluation environment outside the repository only) | Serving the bake-off candidates | Apache-2.0 / BSD-3-Clause / Apache-2.0 |
 
 Licenses of the remaining AI models (the other embedding candidates in the stage 7 bake-off, Qwen3, Llama, the reranker) will be recorded here when they are adopted in stages 7 and 8. Verify each license before adopting.

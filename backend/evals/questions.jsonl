@@ -15,9 +15,9 @@
 {"id": "ar-03", "text": "كم يوماً من الإجازة يستحق الموظف عند وفاة أحد الأقارب من الدرجة الأولى؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "hr_leave_ar", "evidence": "يستحق الموظف 3 أيام إجازة مدفوعة عند وفاة أحد الأقارب من الدرجة الأولى"}]}
 {"id": "ar-04", "text": "من يوافق على المصروفات التي تزيد على 25,000 ريال؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "travel_expense_ar", "evidence": "يوافق الرئيس التنفيذي على ما يزيد على 25,000 ريال"}]}
 {"id": "ar-05", "text": "كم يبلغ بدل المواصلات عند استخدام السيارة الشخصية في العمل؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "travel_expense_ar", "evidence": "بواقع 0.90 ريال لكل كيلومتر"}]}
-{"id": "ar-06", "text": "كم مرة في السنة يقبل إقرار فقدان الإيصال؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "travel_expense_ar", "evidence": "أكثر من مرتين في السنة"}]}
+{"id": "ar-06", "text": "كم مرة في السنة يقبل إقرار فقدان الإيصال؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "travel_expense_ar", "evidence": "أكثر من مرتين في السنة"}], "answer_keys": [["مرتين", "مرتان", "twice", "two"]]}
 {"id": "ar-07", "text": "كم يوماً تحفظ النسخ الاحتياطية؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "it_security_ar", "evidence": "لمدة 90 يوماً قبل حذفها"}]}
-{"id": "ar-08", "text": "خلال كم ساعة يجب إبلاغ فريق الأمن عن فقدان جهاز محمول؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "it_security_ar", "evidence": "خلال ساعتين من فقدان أي جهاز"}]}
+{"id": "ar-08", "text": "خلال كم ساعة يجب إبلاغ فريق الأمن عن فقدان جهاز محمول؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "it_security_ar", "evidence": "خلال ساعتين من فقدان أي جهاز"}], "answer_keys": [["ساعتين", "ساعتان", "two hours", "2"]]}
 {"id": "ar-09", "text": "كم مرة تراجع صلاحيات الوصول إلى الأنظمة؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "it_security_ar", "evidence": "تراجع صلاحيات الوصول إلى الأنظمة كل 6 أشهر"}]}
 {"id": "ar-10", "text": "متى تستبدل المركبة؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "fleet_maintenance_ar", "evidence": "تستبدل المركبة عند بلوغها 8 سنوات"}]}
 {"id": "ar-11", "text": "ما المسافة التي يوضع عندها المثلث العاكس خلف المركبة المعطلة؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "fleet_maintenance_ar", "evidence": "على بعد 50 متراً"}]}
@@ -34,14 +34,14 @@
 {"id": "x-en-ar-02", "text": "How long is marriage leave?", "lang": "en", "category": "cross_en_to_ar", "gold": [{"doc": "hr_leave_ar", "evidence": "إجازة زواج مدفوعة الأجر مدتها 5 أيام عمل"}]}
 {"id": "x-en-ar-03", "text": "Who approves expenses above SAR 25,000?", "lang": "en", "category": "cross_en_to_ar", "gold": [{"doc": "travel_expense_ar", "evidence": "يوافق الرئيس التنفيذي على ما يزيد على 25,000 ريال"}]}
 {"id": "x-en-ar-04", "text": "How long are backups retained?", "lang": "en", "category": "cross_en_to_ar", "gold": [{"doc": "it_security_ar", "evidence": "لمدة 90 يوماً قبل حذفها"}]}
-{"id": "x-en-ar-05", "text": "How quickly must a lost laptop or phone be reported?", "lang": "en", "category": "cross_en_to_ar", "gold": [{"doc": "it_security_ar", "evidence": "خلال ساعتين من فقدان أي جهاز"}]}
+{"id": "x-en-ar-05", "text": "How quickly must a lost laptop or phone be reported?", "lang": "en", "category": "cross_en_to_ar", "gold": [{"doc": "it_security_ar", "evidence": "خلال ساعتين من فقدان أي جهاز"}], "answer_keys": [["ساعتين", "ساعتان", "two hours", "2"]]}
 {"id": "x-en-ar-06", "text": "What is the maximum load of a large truck?", "lang": "en", "category": "cross_en_to_ar", "gold": [{"doc": "fleet_maintenance_ar", "evidence": "حمولة الشاحنة الكبيرة 12 طناً"}]}
 {"id": "x-en-ar-07", "text": "After how many years is a vehicle replaced?", "lang": "en", "category": "cross_en_to_ar", "gold": [{"doc": "fleet_maintenance_ar", "evidence": "تستبدل المركبة عند بلوغها 8 سنوات"}]}
 {"id": "x-en-ar-08", "text": "What is the rate per kilometre when using a personal car for work?", "lang": "en", "category": "cross_en_to_ar", "gold": [{"doc": "travel_expense_ar", "evidence": "بواقع 0.90 ريال لكل كيلومتر"}]}
-{"id": "mix-01", "text": "How many quotations are needed for a purchase above 50,000 riyals?", "lang": "en", "category": "mixed", "gold": [{"doc": "procurement_mixed", "evidence": "ثلاثة عروض أسعار (quotations) على الأقل"}]}
+{"id": "mix-01", "text": "How many quotations are needed for a purchase above 50,000 riyals?", "lang": "en", "category": "mixed", "gold": [{"doc": "procurement_mixed", "evidence": "ثلاثة عروض أسعار (quotations) على الأقل"}], "answer_keys": [["ثلاثة", "three", "3"]]}
 {"id": "mix-02", "text": "من يوقع أمر الشراء الذي يتجاوز 250,000 ريال؟", "lang": "ar", "category": "mixed", "gold": [{"doc": "procurement_mixed", "evidence": "Any purchase order (PO) above SAR 250,000 requires the signature of the CEO"}]}
 {"id": "mix-03", "text": "ما هي شروط الدفع القياسية للموردين؟", "lang": "ar", "category": "mixed", "gold": [{"doc": "procurement_mixed", "evidence": "شروط الدفع القياسية هي صافي 45 يوماً"}]}
-{"id": "mix-04", "text": "What documents does a new vendor need to register?", "lang": "en", "category": "mixed", "gold": [{"doc": "procurement_mixed", "evidence": "السجل التجاري (Commercial Registration)"}]}
+{"id": "mix-04", "text": "What documents does a new vendor need to register?", "lang": "en", "category": "mixed", "gold": [{"doc": "procurement_mixed", "evidence": "السجل التجاري (Commercial Registration)"}], "answer_keys": [["السجل التجاري", "commercial registration"]]}
 {"id": "dg-ar-approval-western", "text": "من يوافق على المصروفات التي تزيد على 25,000 ريال؟", "lang": "ar", "category": "digit_variant", "gold": [{"doc": "travel_expense_ar", "evidence": "يوافق الرئيس التنفيذي على ما يزيد على 25,000 ريال"}], "group": "dg-ar-approval"}
 {"id": "dg-ar-approval-arabic_indic", "text": "من يوافق على المصروفات التي تزيد على ٢٥٬٠٠٠ ريال؟", "lang": "ar", "category": "digit_variant", "gold": [{"doc": "travel_expense_ar", "evidence": "يوافق الرئيس التنفيذي على ما يزيد على 25,000 ريال"}], "group": "dg-ar-approval"}
 {"id": "dg-ar-approval-persian", "text": "من يوافق على المصروفات التي تزيد على ۲۵,۰۰۰ ريال؟", "lang": "ar", "category": "digit_variant", "gold": [{"doc": "travel_expense_ar", "evidence": "يوافق الرئيس التنفيذي على ما يزيد على 25,000 ريال"}], "group": "dg-ar-approval"}
@@ -61,12 +61,12 @@
 {"id": "var-05", "text": "ما الحمولة القصوى للشاحنة الكبيرة في شركة الصقر للتبريد؟", "lang": "ar", "category": "variant_entity", "gold": [{"doc": "fleet_maintenance_ar__cold_chain", "evidence": "حمولة الشاحنة الكبيرة 10 أطنان"}]}
 {"id": "var-06", "text": "كم يوماً تحفظ النسخ الاحتياطية في شركة الصقر للشحن الجوي؟", "lang": "ar", "category": "variant_entity", "gold": [{"doc": "it_security_ar__air_cargo", "evidence": "لمدة 180 يوماً قبل حذفها"}]}
 {"id": "restr-01", "text": "What budget did the board approve for Project Cedar?", "lang": "en", "category": "restricted", "gold": [{"doc": "board_minutes_restricted_en", "evidence": "acquisition budget of SAR 12 million for Project Cedar"}]}
-{"id": "none-01", "text": "What is the company's dress code policy?", "lang": "en", "category": "unanswerable", "gold": []}
-{"id": "none-02", "text": "How many days of leave do employees get for relocating to a new city?", "lang": "en", "category": "unanswerable", "gold": []}
-{"id": "none-03", "text": "ما هي سياسة العمل عن بعد في الشركة؟", "lang": "ar", "category": "unanswerable", "gold": []}
-{"id": "none-04", "text": "كم تبلغ مكافأة نهاية الخدمة للموظف؟", "lang": "ar", "category": "unanswerable", "gold": []}
-{"id": "none-05", "text": "Who is the CEO of Falcon Logistics?", "lang": "en", "category": "unanswerable", "gold": []}
-{"id": "none-06", "text": "ما هو سعر سهم الشركة في السوق؟", "lang": "ar", "category": "unanswerable", "gold": []}
+{"id": "none-01", "text": "What is the company's dress code policy?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "absent"}
+{"id": "none-02", "text": "How many days of leave do employees get for relocating to a new city?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "absent"}
+{"id": "none-03", "text": "ما هي سياسة العمل عن بعد في الشركة؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "absent"}
+{"id": "none-04", "text": "كم تبلغ مكافأة نهاية الخدمة للموظف؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "absent"}
+{"id": "none-05", "text": "Who is the CEO of Falcon Logistics?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "absent"}
+{"id": "none-06", "text": "ما هو سعر سهم الشركة في السوق؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "absent"}
 {"id": "en-13", "text": "How long are customer delivery records kept?", "lang": "en", "category": "en_factoid", "gold": [{"doc": "data_privacy_en", "evidence": "Customer delivery records are kept for 7 years"}]}
 {"id": "en-14", "text": "How long is CCTV footage from depots kept?", "lang": "en", "category": "en_factoid", "gold": [{"doc": "data_privacy_en", "evidence": "CCTV footage from depots is kept for 30 days"}]}
 {"id": "en-15", "text": "Within how many hours must a suspected personal data breach be reported to the Data Protection Officer?", "lang": "en", "category": "en_factoid", "gold": [{"doc": "data_privacy_en", "evidence": "reported to the Data Protection Officer within 24 hours"}]}
@@ -85,19 +85,19 @@
 {"id": "en-28", "text": "Who must approve manual journal entries above SAR 100,000?", "lang": "en", "category": "en_factoid", "gold": [{"doc": "finance_close_en", "evidence": "above SAR 100,000 require approval from the Chief Financial Officer"}]}
 {"id": "en-29", "text": "What cost makes an item a fixed asset?", "lang": "en", "category": "en_factoid", "gold": [{"doc": "finance_close_en", "evidence": "cost exceeds SAR 10,000"}]}
 {"id": "ar-13", "text": "ما الرقم الداخلي للطوارئ؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "first_aid_ar", "evidence": "الرقم الداخلي للطوارئ هو 5555"}]}
-{"id": "ar-14", "text": "أين نقطة التجمع عند الإخلاء؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "first_aid_ar", "evidence": "نقطة التجمع عند الإخلاء هي البوابة الشرقية"}]}
+{"id": "ar-14", "text": "أين نقطة التجمع عند الإخلاء؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "first_aid_ar", "evidence": "نقطة التجمع عند الإخلاء هي البوابة الشرقية"}], "answer_keys": [["البوابة الشرقية", "east gate", "eastern gate", "east entrance"]]}
 {"id": "ar-15", "text": "كم موظفاً يخدمهم مسعف واحد في الوردية؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "first_aid_ar", "evidence": "مسعف مدرب واحد لكل 25 موظفاً"}]}
 {"id": "ar-16", "text": "كم ساعة تدريب سنوياً يلتزم بها كل موظف؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "training_ar", "evidence": "40 ساعة تدريبية على الأقل في السنة"}]}
 {"id": "ar-17", "text": "كم تتحمل الشركة من رسوم الامتحان المهني؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "training_ar", "evidence": "تتحمل الشركة 75 في المائة من رسوم الامتحان المهني"}]}
-{"id": "ar-18", "text": "ما مدة الالتزام بالبقاء بعد دورة تتجاوز 20,000 ريال؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "training_ar", "evidence": "التزم الموظف بالبقاء في الشركة سنتين"}]}
+{"id": "ar-18", "text": "ما مدة الالتزام بالبقاء بعد دورة تتجاوز 20,000 ريال؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "training_ar", "evidence": "التزم الموظف بالبقاء في الشركة سنتين"}], "answer_keys": [["سنتين", "سنتان", "two years", "2 years", "2"]]}
 {"id": "ar-19", "text": "ما الهدف الزمني لاستعادة الأنظمة الحرجة؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "continuity_ar", "evidence": "الهدف الزمني لاستعادة الأنظمة الحرجة هو 4 ساعات"}]}
-{"id": "ar-20", "text": "أين يوجد المركز البديل للعمليات؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "continuity_ar", "evidence": "مركز عمليات بديل في مدينة الدمام"}]}
-{"id": "ar-21", "text": "خلال كم ساعة تبلغ الشركة العملاء عند انقطاع الخدمة؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "continuity_ar", "evidence": "تبلغهم إدارة خدمة العملاء خلال ساعتين"}]}
+{"id": "ar-20", "text": "أين يوجد المركز البديل للعمليات؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "continuity_ar", "evidence": "مركز عمليات بديل في مدينة الدمام"}], "answer_keys": [["الدمام", "dammam"]]}
+{"id": "ar-21", "text": "خلال كم ساعة تبلغ الشركة العملاء عند انقطاع الخدمة؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "continuity_ar", "evidence": "تبلغهم إدارة خدمة العملاء خلال ساعتين"}], "answer_keys": [["ساعتين", "ساعتان", "two hours", "2"]]}
 {"id": "ar-22", "text": "ما الحد الأقصى لقيمة الهدية المقبولة من مورد؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "gifts_ar", "evidence": "هدية تزيد قيمتها على 500 ريال"}]}
 {"id": "ar-23", "text": "كم تبلغ التكلفة القصوى لوجبة العمل مع مورد للفرد؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "gifts_ar", "evidence": "ألا تتجاوز تكلفتها 1500 ريال للفرد"}]}
 {"id": "ar-24", "text": "ما رقم خط النزاهة؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "gifts_ar", "evidence": "800-123-4567"}]}
 {"id": "ar-25", "text": "كم سنة تحفظ العقود التجارية؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "records_ar", "evidence": "تحفظ العقود التجارية 10 سنوات بعد انتهائها"}]}
-{"id": "ar-26", "text": "متى يجري الجرد السنوي للسجلات؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "records_ar", "evidence": "جرداً سنوياً في شهر يناير"}]}
+{"id": "ar-26", "text": "متى يجري الجرد السنوي للسجلات؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "records_ar", "evidence": "جرداً سنوياً في شهر يناير"}], "answer_keys": [["يناير", "january"]]}
 {"id": "ar-27", "text": "خلال كم يوماً تعاد السجلات المستعارة من الأرشيف؟", "lang": "ar", "category": "ar_factoid", "gold": [{"doc": "records_ar", "evidence": "وتعاد خلال 7 أيام"}]}
 {"id": "x-ar-en-09", "text": "كم سنة تحفظ سجلات التسليم الخاصة بالعملاء؟", "lang": "ar", "category": "cross_ar_to_en", "gold": [{"doc": "data_privacy_en", "evidence": "Customer delivery records are kept for 7 years"}]}
 {"id": "x-ar-en-10", "text": "كم مدة فترة التجربة للموظف الجديد؟", "lang": "ar", "category": "cross_ar_to_en", "gold": [{"doc": "onboarding_en", "evidence": "probation period of 90 days"}]}
@@ -108,13 +108,13 @@
 {"id": "x-ar-en-15", "text": "كم يوماً تحفظ تسجيلات كاميرات المراقبة في المستودعات؟", "lang": "ar", "category": "cross_ar_to_en", "gold": [{"doc": "data_privacy_en", "evidence": "CCTV footage from depots is kept for 30 days"}]}
 {"id": "x-ar-en-16", "text": "كم تعويضاً يمكن لقائد الفريق الموافقة عليه عن تأخر التسليم؟", "lang": "ar", "category": "cross_ar_to_en", "gold": [{"doc": "complaints_en", "evidence": "compensation of up to SAR 500 for a late delivery"}]}
 {"id": "x-en-ar-09", "text": "What is the internal emergency number?", "lang": "en", "category": "cross_en_to_ar", "gold": [{"doc": "first_aid_ar", "evidence": "الرقم الداخلي للطوارئ هو 5555"}]}
-{"id": "x-en-ar-10", "text": "Where is the evacuation assembly point?", "lang": "en", "category": "cross_en_to_ar", "gold": [{"doc": "first_aid_ar", "evidence": "نقطة التجمع عند الإخلاء هي البوابة الشرقية"}]}
+{"id": "x-en-ar-10", "text": "Where is the evacuation assembly point?", "lang": "en", "category": "cross_en_to_ar", "gold": [{"doc": "first_aid_ar", "evidence": "نقطة التجمع عند الإخلاء هي البوابة الشرقية"}], "answer_keys": [["البوابة الشرقية", "east gate", "eastern gate", "east entrance"]]}
 {"id": "x-en-ar-11", "text": "How many training hours must each employee complete per year?", "lang": "en", "category": "cross_en_to_ar", "gold": [{"doc": "training_ar", "evidence": "40 ساعة تدريبية على الأقل في السنة"}]}
 {"id": "x-en-ar-12", "text": "What is the recovery time objective for critical systems?", "lang": "en", "category": "cross_en_to_ar", "gold": [{"doc": "continuity_ar", "evidence": "الهدف الزمني لاستعادة الأنظمة الحرجة هو 4 ساعات"}]}
 {"id": "x-en-ar-13", "text": "How many years are commercial contracts retained?", "lang": "en", "category": "cross_en_to_ar", "gold": [{"doc": "records_ar", "evidence": "تحفظ العقود التجارية 10 سنوات بعد انتهائها"}]}
 {"id": "x-en-ar-14", "text": "What is the hotline number for reporting integrity violations?", "lang": "en", "category": "cross_en_to_ar", "gold": [{"doc": "gifts_ar", "evidence": "800-123-4567"}]}
 {"id": "x-en-ar-15", "text": "What is the maximum value of a gift an employee may accept?", "lang": "en", "category": "cross_en_to_ar", "gold": [{"doc": "gifts_ar", "evidence": "هدية تزيد قيمتها على 500 ريال"}]}
-{"id": "x-en-ar-16", "text": "Where is the backup operations centre located?", "lang": "en", "category": "cross_en_to_ar", "gold": [{"doc": "continuity_ar", "evidence": "مركز عمليات بديل في مدينة الدمام"}]}
+{"id": "x-en-ar-16", "text": "Where is the backup operations centre located?", "lang": "en", "category": "cross_en_to_ar", "gold": [{"doc": "continuity_ar", "evidence": "مركز عمليات بديل في مدينة الدمام"}], "answer_keys": [["الدمام", "dammam"]]}
 {"id": "id-01", "text": "What does policy POL-DP-021 cover?", "lang": "en", "category": "identifier", "gold": [{"doc": "data_privacy_en", "evidence": "POL-DP-021"}]}
 {"id": "id-02", "text": "What is in POL-HR-014?", "lang": "en", "category": "identifier", "gold": [{"doc": "onboarding_en", "evidence": "POL-HR-014"}]}
 {"id": "id-03", "text": "Summarize POL-WH-007", "lang": "en", "category": "identifier", "gold": [{"doc": "warehouse_safety_en", "evidence": "POL-WH-007"}]}
@@ -130,7 +130,7 @@
 {"id": "para-01", "text": "How much time does a customer have to send pictures of broken parcels?", "lang": "en", "category": "paraphrase", "gold": [{"doc": "complaints_en", "evidence": "within 48 hours of delivery"}]}
 {"id": "para-02", "text": "What is the highest payout we can approve ourselves for a delayed shipment, without involving a manager?", "lang": "en", "category": "paraphrase", "gold": [{"doc": "complaints_en", "evidence": "compensation of up to SAR 500 for a late delivery"}]}
 {"id": "para-03", "text": "For how many months can we keep GPS data from lorries?", "lang": "en", "category": "paraphrase", "gold": [{"doc": "data_privacy_en", "evidence": "Driver telematics data is kept for 13 months"}]}
-{"id": "para-04", "text": "ما أقصى وقت مسموح لإبلاغ المشرف عن حادث عمل؟", "lang": "ar", "category": "paraphrase", "gold": [{"doc": "first_aid_ar", "evidence": "خلال ساعة واحدة من وقوعها"}]}
+{"id": "para-04", "text": "ما أقصى وقت مسموح لإبلاغ المشرف عن حادث عمل؟", "lang": "ar", "category": "paraphrase", "gold": [{"doc": "first_aid_ar", "evidence": "خلال ساعة واحدة من وقوعها"}], "answer_keys": [["ساعة واحدة", "ساعة", "one hour", "an hour", "1"]]}
 {"id": "para-05", "text": "ما نسبة تكلفة شهادة الامتحان التي تدفعها المؤسسة؟", "lang": "ar", "category": "paraphrase", "gold": [{"doc": "training_ar", "evidence": "تتحمل الشركة 75 في المائة من رسوم الامتحان المهني"}]}
 {"id": "para-06", "text": "هل يسمح بحضور عشاء مع مورد وكم الحد الأعلى للتكلفة؟", "lang": "ar", "category": "paraphrase", "gold": [{"doc": "gifts_ar", "evidence": "ألا تتجاوز تكلفتها 1500 ريال للفرد"}]}
 {"id": "typo-01", "text": "كَمْ يَوْماً تُحْفَظُ النُّسَخُ الاحْتِيَاطِيَّةُ؟", "lang": "ar", "category": "typo_diacritic", "gold": [{"doc": "it_security_ar", "evidence": "لمدة 90 يوماً قبل حذفها"}]}
@@ -145,7 +145,65 @@
 {"id": "multi-02", "text": "How soon must a complaint be acknowledged and how long is the probation period?", "lang": "en", "category": "multi_passage", "gold": [{"doc": "complaints_en", "evidence": "acknowledged within 4 business hours"}, {"doc": "onboarding_en", "evidence": "probation period of 90 days"}]}
 {"id": "multi-03", "text": "ما رقم الطوارئ الداخلي وكم سنة تحفظ العقود التجارية؟", "lang": "ar", "category": "multi_passage", "gold": [{"doc": "first_aid_ar", "evidence": "الرقم الداخلي للطوارئ هو 5555"}, {"doc": "records_ar", "evidence": "تحفظ العقود التجارية 10 سنوات بعد انتهائها"}]}
 {"id": "multi-04", "text": "ما الحد الأقصى للهدية وما الهدف الزمني لاستعادة الأنظمة؟", "lang": "ar", "category": "multi_passage", "gold": [{"doc": "gifts_ar", "evidence": "هدية تزيد قيمتها على 500 ريال"}, {"doc": "continuity_ar", "evidence": "الهدف الزمني لاستعادة الأنظمة الحرجة هو 4 ساعات"}]}
-{"id": "none-07", "text": "What is the company's policy on pets in the office?", "lang": "en", "category": "unanswerable", "gold": []}
-{"id": "none-08", "text": "How many stock options does a new manager receive?", "lang": "en", "category": "unanswerable", "gold": []}
-{"id": "none-09", "text": "ما هي سياسة السفر بالدرجة الأولى للرئيس التنفيذي؟", "lang": "ar", "category": "unanswerable", "gold": []}
-{"id": "none-10", "text": "كم يبلغ بدل السكن للموظفين الجدد؟", "lang": "ar", "category": "unanswerable", "gold": []}
+{"id": "none-07", "text": "What is the company's policy on pets in the office?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "absent"}
+{"id": "none-08", "text": "How many stock options does a new manager receive?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "absent"}
+{"id": "none-09", "text": "ما هي سياسة السفر بالدرجة الأولى للرئيس التنفيذي؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "absent"}
+{"id": "none-10", "text": "كم يبلغ بدل السكن للموظفين الجدد؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "absent"}
+{"id": "none-11", "text": "Which health insurance provider covers employees?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "absent"}
+{"id": "none-12", "text": "What are the office opening hours?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "absent"}
+{"id": "none-13", "text": "How does the company handle remote work requests?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "absent"}
+{"id": "none-14", "text": "What is the parking policy at headquarters?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "absent"}
+{"id": "none-15", "text": "What is the salary scale for a senior driver?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "absent"}
+{"id": "none-16", "text": "Which cloud provider hosts the fleet system?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "absent"}
+{"id": "none-17", "text": "When is the next company-wide holiday party?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "absent"}
+{"id": "none-18", "text": "Who is the head of human resources?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "absent"}
+{"id": "none-19", "text": "ما هي ساعات الدوام الرسمي؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "absent"}
+{"id": "none-20", "text": "ما اسم شركة التأمين الصحي للموظفين؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "absent"}
+{"id": "none-21", "text": "كيف تتعامل الشركة مع طلبات العمل عن بعد؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "absent"}
+{"id": "none-22", "text": "ما هي سياسة مواقف السيارات في المقر الرئيسي؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "absent"}
+{"id": "none-23", "text": "كم يبلغ الراتب الأساسي لسائق أول؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "absent"}
+{"id": "none-24", "text": "ما هو موعد حفل نهاية العام؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "absent"}
+{"id": "none-25", "text": "من هو مدير قسم الموارد البشرية؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "absent"}
+{"id": "none-26", "text": "ما رقم هاتف مكتب الاستقبال؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "absent"}
+{"id": "none-27", "text": "How many days of leave are granted for jury duty?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "plausible_absent"}
+{"id": "none-28", "text": "What is the mileage rate for motorcycles?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "plausible_absent"}
+{"id": "none-29", "text": "What is the retention period for recorded customer calls?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "plausible_absent"}
+{"id": "none-30", "text": "How often must forklift licences be renewed?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "plausible_absent"}
+{"id": "none-31", "text": "What is the maximum load of a motorcycle courier box?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "plausible_absent"}
+{"id": "none-32", "text": "What is the notice period for contractors?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "plausible_absent"}
+{"id": "none-33", "text": "How many days of leave are granted for moving house?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "plausible_absent"}
+{"id": "none-34", "text": "Which encryption algorithm is used for laptop disk encryption?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "plausible_absent"}
+{"id": "none-35", "text": "كم يوماً إجازة تمنح للاستقالة؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "plausible_absent"}
+{"id": "none-36", "text": "ما بدل السكن للموظفين الجدد؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "plausible_absent"}
+{"id": "none-37", "text": "كم مدة حفظ تسجيلات المكالمات الهاتفية للعملاء؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "plausible_absent"}
+{"id": "none-38", "text": "كم عدد المسعفين في المكتب الرئيسي؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "plausible_absent"}
+{"id": "none-39", "text": "كم يبلغ بدل الملابس الرسمية للسائقين؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "plausible_absent"}
+{"id": "none-40", "text": "ما هي مدة إجازة الأبوة للتوأم؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "plausible_absent"}
+{"id": "none-43", "text": "How many days of sick leave can be carried over to next year?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "near_miss"}
+{"id": "none-44", "text": "What is the speed limit for forklifts outside the warehouse?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "near_miss"}
+{"id": "none-45", "text": "What compensation is paid for a lost parcel?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "near_miss"}
+{"id": "none-46", "text": "How long must CCTV footage from offices be kept?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "near_miss"}
+{"id": "none-47", "text": "What is the reimbursement for in-flight Wi-Fi charges?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "near_miss"}
+{"id": "none-48", "text": "What is the approval process for disposing of company vehicles?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "near_miss"}
+{"id": "none-49", "text": "What is the probation period for contractors?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "near_miss"}
+{"id": "none-50", "text": "What is the meal allowance for day trips shorter than 8 hours?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "near_miss"}
+{"id": "none-51", "text": "كم تبلغ تكلفة تأشيرة الدخول التي تسددها الشركة؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "near_miss"}
+{"id": "none-52", "text": "ما أقصى سرعة مسموحة للشاحنة داخل المدن؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "near_miss"}
+{"id": "none-53", "text": "كم يوماً يمكن ترحيلها من الإجازة المرضية إلى السنة التالية؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "near_miss"}
+{"id": "none-54", "text": "ما قيمة مكافأة الإحالة التي يحصل عليها الموظف؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "near_miss"}
+{"id": "none-55", "text": "كم عدد أيام تدريب المسعفين سنوياً؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "near_miss"}
+{"id": "none-56", "text": "ما مدة حفظ تسجيلات كاميرات المراقبة في المكاتب؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "near_miss"}
+{"id": "none-57", "text": "What did the remuneration committee recommend?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "restricted_only"}
+{"id": "none-58", "text": "When is the due diligence for Project Cedar due?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "restricted_only"}
+{"id": "none-59", "text": "By how much will executive base salaries increase?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "restricted_only"}
+{"id": "none-60", "text": "How much will the company spend on the cold-storage acquisition?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "restricted_only"}
+{"id": "none-61", "text": "ما الميزانية التي اعتمدها المجلس لمشروع الأرز؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "restricted_only"}
+{"id": "none-62", "text": "متى موعد إنجاز العناية الواجبة لمشروع الأرز؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "restricted_only"}
+{"id": "none-63", "text": "ما نسبة زيادة رواتب كبار التنفيذيين؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "restricted_only"}
+{"id": "none-64", "text": "ماذا أوصت لجنة المكافآت؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "restricted_only"}
+{"id": "none-65", "text": "What is the capital of France?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "off_topic"}
+{"id": "none-66", "text": "How do I bake sourdough bread?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "off_topic"}
+{"id": "none-67", "text": "Who won the last football world cup?", "lang": "en", "category": "unanswerable", "gold": [], "kind": "off_topic"}
+{"id": "none-68", "text": "ما عاصمة اليابان؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "off_topic"}
+{"id": "none-69", "text": "كيف أطبخ الكبسة؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "off_topic"}
+{"id": "none-70", "text": "من اخترع الهاتف؟", "lang": "ar", "category": "unanswerable", "gold": [], "kind": "off_topic"}

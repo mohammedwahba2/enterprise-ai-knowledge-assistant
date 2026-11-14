@@ -15,7 +15,7 @@ from app.modules.chat.queue import GenerationQueue
 from tests.fake_chat import FakeChat
 from tests.fake_embedder import FakeEmbedder
 from tests.tenancy_helpers import Person, World
-from tests.test_retrieval import CANARY, Team, team
+from tests.test_retrieval import CANARY, Team, index, team
 
 GROUNDED = "Employees receive twenty five working days of paid annual leave per calendar year [1]."
 QUESTION = "how many working days of paid annual leave do employees receive per year"
@@ -124,6 +124,7 @@ async def test_weak_evidence_is_refused_without_calling_the_model(world: World) 
     )
     assert chat.calls == []  # the model was never called
     assert "delta" not in names(events) and "retrieval" not in names(events)
+    assert all(r["similarity"] >= 0.14 for r in refused["related"])  # near-misses only
 
 
 @pytest.mark.parametrize(
@@ -137,7 +138,8 @@ async def test_the_no_answer_protocol_is_never_shown_as_an_answer(world: World, 
         and dict(events)["refused"]["reason"] == "NO_ANSWER"
     )
     assert "delta" not in names(events), "NO_ANSWER must never leak into the stream"
-    assert "NO_ANSWER" not in json.dumps(events)
+    shown = [d.get("text", "") for k, d in events if k in ("delta", "final", "refused")]
+    assert all("NO_ANSWER" not in t for t in shown)  # the protocol token never reaches the user
     assert chat.calls
 
 
@@ -175,12 +177,18 @@ async def test_invented_markers_are_stripped_and_the_answer_is_flagged(world: Wo
 
 async def test_the_answer_language_follows_the_question(world: World) -> None:
     t, chat, cid = await setup(world, "NO_ANSWER")
-    _, events = await ask(t.people["viewer"], t.oid, cid, "كم يوماً تبلغ الإجازة السنوية للموظف؟")
+    await index(
+        world, t.people["owner"], t.oid, t.general, "leave ar",
+        "يستحق الموظف 25 يوم عمل من الإجازة السنوية المدفوعة في كل سنة ميلادية",
+    )  # fmt: skip
+    arabic_question = "كم يوماً من الإجازة السنوية المدفوعة يستحق الموظف؟"
+    _, events = await ask(t.people["viewer"], t.oid, cid, arabic_question)
     assert "Write the answer in Arabic" in chat.calls[0][0].content
-    refused = dict(events)["refused"]
-    assert refused["text"] == "لم أجد هذا في مستنداتك."
+    assert dict(events)["refused"]["text"] == "لم أجد هذا في مستنداتك."
     _, events = await ask(t.people["viewer"], t.oid, cid, QUESTION, language="ar")
     assert "Write the answer in Arabic" in chat.calls[1][0].content  # explicit override wins
+    _, events = await ask(t.people["viewer"], t.oid, cid, QUESTION)
+    assert "Write the answer in English" in chat.calls[2][0].content
 
 
 # ------------------------------------------------------------------ permissions and privacy
@@ -190,24 +198,33 @@ async def test_restricted_text_never_reaches_the_model_for_an_unauthorized_user(
     world: World,
 ) -> None:
     t, chat, _ = await setup(world, "NO_ANSWER")
-    secret_question = f"{CANARY} acquisition budget Project Cedar twelve million"
+    # matches the accessible leave policy (so the model IS called) AND names the secret
+    secret_question = f"{QUESTION} {CANARY} Project Cedar acquisition budget"
     for who in ("member", "viewer", "editor"):
         person = t.people[who]
         cid = await conversation(person, t.oid)
         _, events = await ask(person, t.oid, cid, secret_question)
-        assert CANARY not in json.dumps(events) and "Cedar" not in json.dumps(events)
-    # the prompts the model received contain neither the canary nor the restricted text
-    prompts = chat.prompts
-    assert "acquisition budget for Project Cedar is twelve million" not in prompts
-    assert "Board only" not in prompts
-    assert prompts.count(CANARY) == 3  # only the three questions themselves carry the string
+        assert "Cedar" not in json.dumps(events) and "Board only" not in json.dumps(events)
+    assert len(chat.calls) == 3, "the model must have run, or this test proves nothing"
+    shown = chat.prompts
+    # the restricted document's text is absent; the canary appears only inside the typed question
+    assert (
+        "Board only" not in shown
+        and "acquisition budget for Project Cedar is twelve million" not in shown
+    )
+    assert "board minutes" not in shown
+    assert shown.count(CANARY) == 3 and all(
+        CANARY in call[1].content.split("Question:")[1] for call in chat.calls
+    )
 
     chat.calls.clear()
-    chat.reply = "The acquisition budget is twelve million [1]."
+    chat.reply = "The acquisition budget for Project Cedar is twelve million [1]."
     listed = t.people["listed"]
     cid = await conversation(listed, t.oid)
-    _, events = await ask(listed, t.oid, cid, secret_question)
-    assert "Board only" in chat.prompts  # an authorized user's model run does see it
+    _, events = await ask(
+        listed, t.oid, cid, f"{CANARY} Project Cedar acquisition budget twelve million"
+    )
+    assert "Board only" in chat.prompts  # an authorized user's run does see it
     assert dict(events)["final"]["citations"][0]["document_title"] == "board minutes"
 
 
@@ -332,22 +349,23 @@ async def test_invalid_requests_are_rejected_before_any_streaming(world: World) 
     assert r.status_code == 404
 
 
-async def test_the_bounded_queue_makes_requests_wait_visibly_and_rejects_overflow(
+async def test_the_bounded_queue_makes_requests_wait_visibly_and_refuses_overflow(
     world: World,
 ) -> None:
     lenient(world, llm_queue_limit=1)
     t, _, _ = await setup(world, delay=0.15, chunk_chars=30)
-    people = [t.people["viewer"], t.people["member"], t.people["editor"]]
-    cids = [await conversation(p, t.oid) for p in people]
-    results = await asyncio.gather(*(ask(p, t.oid, c) for p, c in zip(people, cids, strict=True)))
-    codes = sorted(status for status, _ in results)
-    assert codes.count(200) >= 2
+    viewer = t.people["viewer"]  # one person = one app = one shared queue
+    cids = [await conversation(viewer, t.oid) for _ in range(3)]
+    results = await asyncio.gather(*(ask(viewer, t.oid, c) for c in cids))
     streams = [events for status, events in results if status == 200]
-    assert any("queued" in names(events) for events in streams)  # someone waited, visibly
-    assert all(names(e)[-1] == "done" for e in streams)
-    if codes[-1] == 503:  # the third request found the queue full
-        busy = next(events for status, events in results if status == 503)
-        assert busy[0][1]["code"] == "BUSY"
+    assert len(streams) == 3 and all(names(e)[-1] == "done" for e in streams)
+    outcomes = sorted(names(e)[-2] for e in streams)
+    assert outcomes == ["error", "final", "final"]  # one ran, one waited, one was refused as BUSY
+    assert any("queued" in names(e) for e in streams)
+    busy = next(e for e in streams if names(e)[-2] == "error")
+    assert dict(busy)["error"]["code"] == "BUSY"
+    answers = (await viewer.get(f"/orgs/{t.oid}/conversations/{cids[0]}")).json()
+    assert answers["messages"][1]["status"] in ("complete", "error")  # nothing left streaming
 
 
 # ------------------------------------------------------------------ disconnects
@@ -437,7 +455,9 @@ async def test_an_abandoned_generator_is_also_finalized(world: World) -> None:
             break
     await generator.aclose()
     assert await _status(world, t, started.assistant_message_id) == ("error", "INTERRUPTED")
-    assert deps.queue.waiting == 0 and not deps.queue.would_wait()  # the model slot was released
+    free = deps.queue.enter()  # the model slot was released: a new request runs at once
+    assert free is not None and free.position == 0 and deps.queue.waiting == 0
+    free.release()
 
 
 async def test_the_settings_defaults_are_the_documented_ones() -> None:

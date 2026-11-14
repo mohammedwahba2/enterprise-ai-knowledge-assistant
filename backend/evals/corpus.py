@@ -63,6 +63,10 @@ class Question:
     category: str
     gold: tuple[Gold, ...]
     group: str | None = None  # digit-variant questions of one group must retrieve identically
+    # stage 8: why an unanswerable question is unanswerable, and, for answerable ones whose gold
+    # evidence has no number, the key facts an answer must contain (every group, any alternative)
+    kind: str | None = None
+    answer_keys: tuple[tuple[str, ...], ...] = ()
 
 
 # --- variants -----------------------------------------------------------------------------
@@ -312,6 +316,8 @@ def load_questions(path: Path = QUESTIONS) -> list[Question]:
                 category=raw["category"],
                 gold=tuple(Gold(g["doc"], g["evidence"]) for g in raw["gold"]),
                 group=raw.get("group"),
+                kind=raw.get("kind"),
+                answer_keys=tuple(tuple(g) for g in raw.get("answer_keys", ())),
             )
         )
     return questions
