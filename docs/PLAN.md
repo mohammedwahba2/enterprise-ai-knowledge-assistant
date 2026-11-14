@@ -745,3 +745,78 @@ Sign-up, workspace, then one multipart upload of 8 files; all settled in **2 sec
 | ~~Orphaned objects sweeper~~ | **done in this stage** | closed |
 | The 10-second refresh grace-window trade-off | unchanged and documented in §19.1 | n/a |
 | Nothing committed | by instruction | until you ask |
+
+## 23. Stage 6 report: Embeddings, indexing & evaluation foundation (implemented, awaiting review)
+
+### 23.1 What was built
+**Embedder seam:** a small `Embedder` protocol (`model`, `dimensions`, `embed(texts)`) with one production implementation, `OllamaEmbedder` (`POST /api/embed`, `bge-m3`, 1024-d, bounded retries on transport errors and 502/503/504). Failures are classified: `EmbedderUnavailableError` (transient) and `EmbeddingFailedError` (unknown model, unusable answer, wrong dimensions: permanent). A deterministic fake exists **only in `tests/`**; no runtime setting can select it.
+**Pipeline:** `uploaded → parsing → chunking → embedding → ready`. Chunks are embedded as `"{title} > {heading trail}\n{content}"` with digit scripts folded to ASCII (see 23.4), in bounded batches, **outside any database transaction and before the final write**, so a document is never `ready` without vectors and never half-indexed. Documents with nothing to embed (scanned, blank) skip the stage. New error codes `EMBEDDER_UNAVAILABLE` (retried automatically) and `EMBEDDING_FAILED` (not).
+**Schema** (migration `0005`, applied on a database that already held data): `chunks.embedding vector(1024)` + `embedding_model` (both or neither, enforced by a CHECK), HNSW index (cosine, m=16, ef_construction=64), `content_tsv` (generated: `arabic` config for Arabic chunks, `english` for English, both for mixed, built from the already search-normalized text), `content_tsv_simple` (same text, `simple` config, so stage 7 can measure the Arabic stemmer instead of assuming it helps) with GIN indexes. The API role **still has no privileges on `chunks`**; retrieval grants arrive with stage 7. pgvector 0.8.7.
+**Re-indexing:** `reindex_stale` re-embeds only chunks that lack a vector from the CURRENT model, idempotent and resumable, locks the document so it cannot race a re-process, never changes document status. It runs **periodically** (beat, every 5 min, 25 documents per run) so documents that predate embeddings and a changed `EMBEDDING_MODEL` heal on their own, and can be called by hand per workspace.
+**Automatic retry of dependency outages:** documents that failed only because object storage or the embedder was down are re-queued after a pause (5 min), at most 6 attempts in total; permanent failures are never retried; "Try again" always works.
+**Deleted documents leave nothing behind:** the sweeper now also removes the pages, chunks and vectors of soft-deleted documents (the API role cannot touch those tables, so the worker does it).
+**Evaluation foundation** (`backend/evals/`, plus the committed report `docs/eval/stage6-baseline.md`): see 23.2.
+**Frontend:** `embedding` status ("Indexing"; `chunking` is now "Preparing"), reasons for the two new error codes, English and Arabic.
+**Operations:** Compose `worker` reaches Ollama through `host.docker.internal` (`EMBEDDER_URL`, `EMBEDDING_MODEL`); `beat` now runs the **same image** as the worker and has a healthcheck (see 23.5); `docs/LICENSES.md` records Ollama and bge-m3 (both verified MIT from their official sources) and the stage 5 components that were missing.
+
+### 23.2 Evaluation foundation
+- **Corpus:** 34 synthetic documents (no real data, every file states it is synthetic): 10 hand-written (English, Arabic, mixed Arabic/English procurement guide, and one restricted document carrying the canary `CANARY-7F3A-ZEBRA-LANTERN`), plus 24 deterministic **near-duplicate subsidiary variants** (same wording, different numbers). The variants are hard negatives: without them a 10-document corpus would make recall@5 meaningless.
+- **Questions:** 69 (63 answerable): 12 English and 12 Arabic factoids, 8 Arabic-to-English and 8 English-to-Arabic cross-lingual (each fact lives in only one language), 4 mixed-language, 12 digit-variant (4 groups x Western / Arabic-Indic / Persian digits), 6 subsidiary-specific, 1 restricted, 6 unanswerable (for stage 8's gate calibration).
+- **Gold and judging:** a retrieved chunk is relevant iff it comes from the gold document and contains the gold evidence phrase (search-normalized on both sides); each gold item is credited once. Tests enforce that every evidence phrase exists in its document, is **unique to the gold documents** (an unchanged fact in a variant would punish correct answers; three questions were rewritten because of this check), lies wholly inside one real chunk, and that digit-variant groups are identical once normalized.
+- **Metrics:** recall@1/3/5/10, MRR@10, nDCG@10, page-hit@5, per category and per language pair, digit-variant consistency; hand-computed unit tests.
+- **Baselines** (unfiltered, single-stage, **not** the product retrieval path): vector (HNSW), full text language-aware, full text `simple`.
+
+### 23.3 First numbers (real bge-m3 through Ollama; foundation, not the stage-7 evaluation)
+| Retriever | recall@1 | recall@5 | recall@10 | MRR@10 | ar→en recall@3 | en→ar recall@10 |
+|---|---|---|---|---|---|---|
+| vector, bge-m3 | 0.70 | 0.95 | 0.98 | 0.81 | 1.00 | 1.00 |
+| full text, language-aware | 0.65 | 0.73 | 0.76 | 0.69 | 0.00 | 0.12 |
+| full text, simple | 0.57 | 0.67 | 0.71 | 0.62 | 0.00 | 0.12 |
+
+Read with care (small corpus; about one chunk per document, so page-level hit equals document-level hit): bge-m3 genuinely retrieves **across languages** (an Arabic question finds an English-only fact and the other way round) where lexical search cannot; lexical search is competitive or better at rank 1-3 on same-language Arabic factoids (Arabic factoids recall@3 1.00 vs 0.83), which is what hybrid fusion should exploit in stage 7. The language-aware config beat `simple` here (overall recall@5 0.73 vs 0.67, "mixed" 1.00 vs 0.50), but that is one small measurement, not a decision. One answerable question (`ar-06`) is missed by the vector retriever in the top 10. Ranking ties are now broken deterministically; the earlier tie-dependent lexical numbers moved by up to 9 points of recall@1, a reminder that rank-1 numbers on this corpus are fragile.
+
+### 23.4 Findings that changed the design
+1. **Digit scripts changed the embedding.** The same question with Western, Arabic-Indic or Persian digits found the answer every time but returned different top-10 orders (consistency 0.25), violating the §11.5 requirement of identical results. Digits (and Arabic decimal/thousands separators, not the Arabic comma) are now folded to ASCII in the text sent to the embedder, at index and query time; consistency is 1.00 and the live test enforces it. Stage 7's query path must apply `fold_digits` before embedding.
+2. **Deleted documents left their text and vectors in the index.** Fixed by the periodic purge (23.1). Retrieval must still filter on `documents.deleted_at` (the purge is periodic, not inside the delete request): a stage 7 test requirement.
+3. **Documents processed before this stage had no vectors.** Found live (14 chunks); fixed by the periodic re-index, which also covers model changes.
+
+### 23.5 Defects in my own earlier work, found by this stage's live checks
+- **`beat` had been crash-looping since stage 5.** It was built as a separate image that kept a stale copy from before the `packaging` fix, and my stage 5 live verification never checked it, so the periodic sweeper was never exercised live (it was unit tested only). `beat` now reuses the worker's image and has a healthcheck; this stage verified live that beat schedules tasks, that the transient-failure retry fired by itself (a document failed during an embedder outage reached `ready` automatically once beat ran), and that the delete purge works.
+- The `migrate` image was once stale for the same reason (not rebuilt), so `0004` had not run; the stage 5 report already notes it. Worth a CI check later that every service image is built from the current tree.
+
+### 23.6 Tests (575 backend + 1 opt-in live; 69 frontend; ruff, ruff format, mypy strict on `app`, `tests` and `evals`, eslint, stylelint, tsc clean)
+- **Embedder:** against a mock HTTP transport: request shape, retry on 503 then success, outage reported unavailable, 404/400/unusable body are permanent and never retried, batching, wrong dimensions rejected.
+- **Pipeline/indexing (real Postgres + pgvector):** every chunk stored with a 1024-d vector and the model name; nearest-neighbour finds the right chunk; title and heading prefix and bounded batches; documents without chunks never reach the embedder; outage fails the document recoverably and keeps nothing; automatic retry (too soon: nothing; after the pause: requeued; then succeeds); retry limit; misconfigured model not retried; re-index moves stale chunks, is idempotent, only embeds stale chunks, embeds never-embedded chunks, stops cleanly when the embedder is down, ignores non-ready documents; CHECK refuses a vector without its model; the API role still cannot read chunks or vectors; **HNSW and both GIN indexes are used by the planner** (`EXPLAIN` with sequential scans disabled); Arabic full text across hamza/digit variants including Arabic-Indic digits; mixed-language chunks indexed for both languages; deleting a document purges its pages, chunks and vectors.
+- **Evaluation:** metrics and harness (hand-computed), corpus integrity (139 checks), baselines end to end on the real database.
+- **Mutation checks** (scratch copy outside the repository; the 5 stage 5 checks I had left open and 6 new ones), **all 11 killed:** lam-alef repair removed; lam-alef swap without the shared-box check; partial documents reported `ready`; stuck-document retries that never give up; SSE that never re-checks access; digits not folded in search normalization; re-index ignoring a changed model; wrong vector dimensions accepted; permanent embedding failures retried automatically; chunks stored under the wrong model name; embedding text dropping the title.
+- **One intermittent failure** of the baselines test in one full run, not reproducible in 7 isolated runs and 2 further full runs. Probable cause: tie ordering that depended on the query plan; both baselines now break ties by document and chunk. Not proven; flagged.
+
+### 23.7 Live verification (Docker Compose, real bge-m3)
+Migration `0005` applied on the existing database (pgvector 0.8.7, all indexes present). The worker container reached the host's loopback-only Ollama through `host.docker.internal`. 17 documents (fixtures, Arabic DOCX and PDF, corpus) settled in 6 s with vectors; real cross-lingual nearest-neighbour queries from the worker (an Arabic maternity-leave question returned the English leave policy first; an English truck-load question returned the Arabic fleet document first). Outage drill: Ollama stopped, two uploads failed with `EMBEDDER_UNAVAILABLE` (shown in the Library with the new reason), Ollama restarted, "Try again" brought one to `ready`, beat's automatic retry brought the other. Delete + purge removed chunks and vectors; no chunk belongs to a deleted document.
+
+### 23.8 Decisions, deviations and limits for your review
+- **Ollama was installed on the host** at your choice (official release tarball, SHA-256 checked against the published checksum, Developer-ID signed binary, user-level directory, no sudo), listening on loopback only; `bge-m3` (1.2 GB) pulled. Both are MIT.
+- **Only bge-m3 has been run.** The bake-off candidates (multilingual-e5-large and an Arabic-focused embedder) are **not** evaluated yet: their licenses, sizes and serving path are still unverified, and the decision belongs to stage 7 on a larger corpus. D10 stays open.
+- **The corpus is small** (34 documents, about one chunk each, 63 answerable questions): enough to validate the harness and to see large effects, not to rank models that differ by a few points. Stage 7 must grow it (multi-page PDFs through the real parser, longer documents) before any decision.
+- **"ready" now means extracted, embedded and indexed.** A document is searchable only by the model that embedded it; a model change makes chunks stale and the periodic re-index heals them (retrieval in stage 7 must only use chunks whose `embedding_model` is the current one).
+- **HNSW and permission pre-filtering:** a filtered HNSW search can return fewer than k rows (post-filtering). pgvector 0.8 has iterative scans; stage 7 must measure this with restricted collections.
+- No retrieval API, no query embedding, no reranker yet (stage 7).
+
+### 23.9 Outstanding verification items (carried forward, still open)
+| Item | Status | When |
+|---|---|---|
+| gitleaks locally; GitHub Actions workflow verified (needs Docker-in-CI for the Postgres, Redis and SeaweedFS testcontainers; the live Ollama test stays opt-in) | not done (no remote, gitleaks not installed) | before the first push |
+| Python 3.12 test run of the suite (containers run 3.12) | partly (runtime verified in containers) | CI before first push |
+| Real SMTP (STARTTLS/auth) delivery | not done (Mailpit only) | before any deployment |
+| Rate limits, refresh locking, RLS helper cost, worker concurrency and queue/embedding throughput under load | not done | stage 11 |
+| Playwright end-to-end tests | not done | stage 9 |
+| Tablet width and signed-in shell review | not done | stage 9/10 |
+| ~~Stage 5 mutation checks~~ | **done in this stage** (5 killed, plus 6 for stage 6) | closed |
+| Embedder bake-off (multilingual-e5-large, an Arabic-focused model: license, size, serving, quality) and a larger corpus | open | stage 7 |
+| Arabic extraction quality (tanween-alef words, short reversed runs) measured through retrieval | open | stage 7/11 |
+| Permission pre-filtered HNSW behaviour (iterative scans) and `deleted_at` filtering in retrieval | open | stage 7 |
+| CI check that every Compose service image is built from the current tree | open | before the first push |
+| SeaweedFS capacity settings for production | not tuned | before deployment |
+| Collection and ACL management UI | not built | stage 10 |
+| The 10-second refresh grace-window trade-off | unchanged and documented in §19.1 | n/a |
+| Nothing committed by me (the repository shows commits authored as you during the work) | by instruction | until you ask |

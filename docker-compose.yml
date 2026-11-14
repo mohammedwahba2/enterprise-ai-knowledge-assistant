@@ -86,6 +86,7 @@ services:
   worker:
     <<: *hardening
     build: { context: ./backend, target: worker }
+    image: knowledge-assistant-worker
     environment: &worker-env
       APP_ENV: ${APP_ENV:-dev}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
@@ -118,14 +119,25 @@ services:
       start_period: 20s
 
   # Periodic housekeeping (stuck documents, purged objects, orphan workspace files).
+  # Runs the SAME image as the worker (never a separately built copy that can silently go stale:
+  # that is how a crash-looping scheduler once went unnoticed).
   beat:
     <<: *hardening
-    build: { context: ./backend, target: worker }
+    image: knowledge-assistant-worker
+    pull_policy: never
     command: ["celery", "-A", "app.worker.celery_app", "beat", "--loglevel=INFO", "--schedule=/tmp/celerybeat-schedule"]
     environment: *worker-env
     tmpfs: ["/tmp:size=16m,mode=1777"]
     depends_on:
+      worker: { condition: service_healthy }
       redis: { condition: service_healthy }
+    healthcheck:
+      # beat rewrites its schedule file every time it sends a task (at least once a minute)
+      test: ["CMD-SHELL", "find /tmp -name 'celerybeat-schedule*' -mmin -3 | grep -q ."]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
 
   postgres:
     <<: *hardening

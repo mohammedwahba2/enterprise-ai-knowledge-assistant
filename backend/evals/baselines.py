@@ -27,7 +27,9 @@ def _rows(result: Sequence[tuple[str, int, int, int, str]]) -> list[Retrieved]:
 
 
 class VectorRetriever:
-    """Cosine nearest neighbours of the question embedding (HNSW)."""
+    """Cosine nearest neighbours of the question embedding (HNSW).
+
+    Ties are broken by document and chunk so a ranking never depends on the query plan."""
 
     def __init__(self, sessions: async_sessionmaker[AsyncSession], embedder: Embedder, k: int = 10):
         self.sessions, self.embedder, self.k = sessions, embedder, k
@@ -39,7 +41,8 @@ class VectorRetriever:
                 text(
                     _SELECT
                     + " where c.embedding_model = :m"
-                    + " order by c.embedding <=> CAST(CAST(:q AS text) AS vector) limit :k"
+                    + " order by c.embedding <=> CAST(CAST(:q AS text) AS vector),"
+                    + " slug, c.chunk_index limit :k"
                 ),
                 {"q": vector_literal(vector), "m": self.embedder.model, "k": self.k},
             )
@@ -69,7 +72,7 @@ class FtsRetriever:
             result = await s.execute(
                 text(
                     f"{_SELECT} where {column} @@ {tsq} "
-                    f"order by ts_rank_cd({column}, {tsq}) desc, c.chunk_index limit :k"
+                    f"order by ts_rank_cd({column}, {tsq}) desc, slug, c.chunk_index limit :k"
                 ),
                 {"q": query, "k": self.k},
             )
