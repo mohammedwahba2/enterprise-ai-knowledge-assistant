@@ -66,6 +66,11 @@ def _accessible_ids(ctx: TenantCtx) -> Select[Any]:
     return stmt
 
 
+def accessible_collection_ids(ctx: TenantCtx) -> Select[Any]:
+    """Public name of the access rule, shared by every feature that reads document content."""
+    return _accessible_ids(ctx)
+
+
 async def _collection(ctx: TenantCtx, collection_id: uuid.UUID) -> Collection:
     """A collection the caller may access. Inaccessible and nonexistent look identical (404)."""
     row = await ctx.db.scalar(

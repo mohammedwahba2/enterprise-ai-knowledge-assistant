@@ -12,6 +12,8 @@ from app.core.logging import configure_logging
 from app.core.middleware import RequestContextMiddleware
 from app.core.readiness import Check, build_checks
 from app.db.base import make_engine, make_sessionmaker
+from app.infrastructure.embeddings.base import Embedder
+from app.infrastructure.embeddings.ollama import OllamaEmbedder
 from app.infrastructure.storage.s3 import ObjectStore, S3ObjectStore
 from app.modules.documents.router import router as documents_router
 from app.modules.identity.email import EmailSender, SmtpEmailSender
@@ -19,6 +21,7 @@ from app.modules.identity.passwords import PasswordService
 from app.modules.identity.rate_limit import RateLimiter
 from app.modules.identity.router import router as auth_router
 from app.modules.processing.queue import Enqueue, celery_enqueue
+from app.modules.retrieval.router import router as retrieval_router
 from app.modules.tenancy.router import invitations_router
 from app.modules.tenancy.router import router as orgs_router
 
@@ -30,6 +33,7 @@ def create_app(
     email_sender: EmailSender | None = None,
     store: ObjectStore | None = None,
     enqueue: Enqueue | None = None,
+    embedder: Embedder | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
     configure_logging(settings.log_level, settings.log_json)
@@ -70,6 +74,15 @@ def create_app(
     app.state.email_sender = email_sender or SmtpEmailSender(settings)
     app.state.store = store or S3ObjectStore(settings)
     app.state.enqueue = enqueue or celery_enqueue
+    # Query embedding is interactive: a short timeout (a slow model must not hang search; search
+    # degrades to full text instead).
+    app.state.embedder = embedder or OllamaEmbedder(
+        settings.embedder_url,
+        settings.embedding_model,
+        settings.embedding_dimensions,
+        settings.query_embedder_timeout_seconds,
+        keep_alive=settings.embedder_keep_alive,
+    )
 
     app.add_middleware(RequestContextMiddleware)
     install_error_handlers(app)
@@ -78,6 +91,7 @@ def create_app(
     v1.include_router(auth_router)
     v1.include_router(orgs_router)
     v1.include_router(documents_router)
+    v1.include_router(retrieval_router)
     v1.include_router(invitations_router)
     app.include_router(v1)
 

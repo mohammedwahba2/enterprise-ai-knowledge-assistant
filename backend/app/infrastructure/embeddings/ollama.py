@@ -19,7 +19,9 @@ class OllamaEmbedder:
         dimensions: int,
         timeout: float = 120.0,
         transport: httpx.AsyncBaseTransport | None = None,  # tests only
+        keep_alive: str | None = None,
     ) -> None:
+        self._keep_alive = keep_alive
         self._transport = transport
         self.model = model
         self.dimensions = dimensions
@@ -29,7 +31,9 @@ class OllamaEmbedder:
     async def embed(self, texts: Sequence[str]) -> list[list[float]]:
         if not texts:
             return []
-        body = {"model": self.model, "input": list(texts), "truncate": True}
+        body: dict[str, object] = {"model": self.model, "input": list(texts), "truncate": True}
+        if self._keep_alive:
+            body["keep_alive"] = self._keep_alive
         last: Exception | None = None
         for attempt in range(RETRIES + 1):
             try:

@@ -58,6 +58,17 @@ class Settings(BaseSettings):
     # Chunks without a vector from the CURRENT model (documents that predate embeddings, or a
     # changed EMBEDDING_MODEL) are re-embedded in the background, this many documents per run.
     reindex_batch_documents: int = Field(default=25, ge=1, le=500)
+    # Keep the model loaded between requests (Ollama unloads idle models after 5 minutes, and the
+    # next query would pay the load time).
+    embedder_keep_alive: str = "30m"
+
+    # --- retrieval (stage 7) ---
+    query_embedder_timeout_seconds: float = Field(default=8.0, ge=1.0)
+    retrieval_candidates: int = Field(default=40, ge=5, le=200)  # per leg, before fusion
+    rrf_k: int = Field(default=60, ge=1)
+    hnsw_ef_search: int = Field(default=100, ge=10, le=1000)
+    hnsw_max_scan: int = Field(default=20000, ge=1000)
+    search_rate_per_minute: int = Field(default=60, ge=1)
 
     # --- documents ---
     max_upload_bytes: int = Field(default=50 * 1024 * 1024, ge=1024)

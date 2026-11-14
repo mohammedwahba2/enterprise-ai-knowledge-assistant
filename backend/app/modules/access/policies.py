@@ -42,6 +42,7 @@ class Action(StrEnum):
     DOCUMENT_UPLOAD = "document:upload"
     DOCUMENT_DELETE = "document:delete"
     DOCUMENT_REPROCESS = "document:reprocess"
+    RETRIEVAL_DEBUG = "retrieval:debug"
 
 
 # Minimum role required for each action. Anything not listed is denied.
@@ -59,6 +60,7 @@ _MINIMUM: dict[Action, Role] = {
     Action.DOCUMENT_UPLOAD: Role.EDITOR,
     Action.DOCUMENT_DELETE: Role.EDITOR,
     Action.DOCUMENT_REPROCESS: Role.EDITOR,
+    Action.RETRIEVAL_DEBUG: Role.ADMIN,
 }
 
 

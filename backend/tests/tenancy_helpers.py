@@ -62,6 +62,7 @@ class World:
     outbox: Outbox
     worker_db_url: str = ""
     enqueued: object | None = None
+    embedder: object | None = None  # the API's query embedder (default: the fake)
     stack: AsyncExitStack = field(default_factory=AsyncExitStack)
 
     async def person(self, name: str, email: str | None = None) -> Person:
@@ -72,6 +73,7 @@ class World:
                 email_sender=self.outbox,
                 ip=f"203.0.113.{next(_ip)}",
                 enqueue=self.enqueued,
+                embedder=self.embedder,
             )
         )
         r = await client.post(
